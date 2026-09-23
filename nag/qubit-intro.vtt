@@ -1,0 +1,181 @@
+WEBVTT
+
+00:06.920 --> 00:10.560
+A classical bit takes one of two values: zero or one.
+
+00:11.080 --> 00:12.640
+A qubit has the same two states.
+
+00:13.360 --> 00:17.000
+They are written in bra-ket notation, and together they are called the computational basis.
+
+00:19.960 --> 00:23.780
+Before it is measured, however, a qubit can hold both values at the same time.
+
+00:24.060 --> 00:28.240
+Not as two separate things: as one state that carries a weight on each of the two outcomes.
+
+00:30.960 --> 00:33.160
+Those two weights constitute the entire state.
+
+00:33.500 --> 00:36.820
+When both are nonzero, the qubit is in a superposition state.
+
+00:43.900 --> 00:45.940
+But, what is physically a qubit?
+
+00:48.120 --> 00:52.220
+A qubit may be realised in many physical systems with two distinguishable states.
+
+00:54.460 --> 00:57.060
+The ground and excited states of a cold atom.
+
+00:57.440 --> 01:01.260
+The two spin orientations of a single electron confined in a quantum dot.
+
+01:01.700 --> 01:04.340
+The horizontal and vertical polarisation of a photon.
+
+01:06.720 --> 01:10.520
+All three are described by the same two basis states and the same weighted combination.
+
+01:11.160 --> 01:14.600
+The remainder of this film therefore concerns the theoretical description of a qubit,
+
+01:14.620 --> 01:15.800
+and not its hardware.
+
+01:22.860 --> 01:25.140
+Alpha and beta are complex numbers.
+
+01:25.660 --> 01:28.900
+Each therefore carries two quantities: a magnitude and a phase.
+
+01:29.700 --> 01:32.920
+These two complex numbers are the probability amplitudes of the qubit.
+
+01:35.400 --> 01:37.240
+The magnitudes are not independent.
+
+01:42.620 --> 01:45.260
+Squared, they sum to one, without exception.
+
+01:50.680 --> 01:52.100
+A second constraint applies.
+
+01:52.560 --> 01:56.920
+Multiplying the entire state by a common phase factor changes nothing that can be measured.
+
+02:02.480 --> 02:04.900
+That phase is therefore not part of the state.
+
+02:14.240 --> 02:15.260
+Consider the count.
+
+02:15.780 --> 02:18.200
+Two complex numbers amount to four real parameters.
+
+02:21.860 --> 02:23.480
+Normalisation of the magnitudes removes one.
+
+02:23.500 --> 02:26.360
+The irrelevance of the overall phase removes a second.
+
+02:28.880 --> 02:29.680
+Two remain.
+
+02:30.280 --> 02:33.500
+And two real parameters are precisely what specify a point on a sphere.
+
+02:42.860 --> 02:45.020
+This is that sphere: the Bloch sphere.
+
+02:45.540 --> 02:47.840
+The state is an arrow from the centre to the surface,
+
+02:48.360 --> 02:50.300
+zero at the north pole and one at the south.
+
+02:50.620 --> 02:54.080
+The first angle, theta, is measured downward from the north pole,
+
+02:54.560 --> 02:55.860
+and it fixes the two magnitudes.
+
+02:58.480 --> 03:02.480
+At the north pole the outcome is certainly zero; at the south pole, certainly one;
+
+03:02.660 --> 03:05.040
+on the equator, the two outcomes are equally likely.
+
+03:10.500 --> 03:13.280
+The second angle, phi, runs around the equator.
+
+03:13.660 --> 03:15.860
+It is the phase difference between the two amplitudes.
+
+03:16.420 --> 03:19.560
+Theta ranges from zero to pi, and phi from zero to two pi.
+
+03:20.520 --> 03:22.440
+Together they cover the sphere exactly once.
+
+03:23.180 --> 03:24.840
+The length of the arrow never changes.
+
+03:25.400 --> 03:26.580
+Only its direction does.
+
+03:33.700 --> 03:35.000
+Now consider a measurement.
+
+03:35.380 --> 03:38.600
+The result is either zero or one, and never an intermediate value.
+
+03:39.040 --> 03:40.660
+The measurement also acts on the qubit.
+
+03:41.280 --> 03:45.100
+Immediately afterwards it is in the state that was returned, and the superposition is gone.
+
+03:47.240 --> 03:51.180
+The probability of each outcome is the square of the corresponding magnitude.
+
+03:56.560 --> 04:00.520
+Prepare many identical qubits in the same state and measure them one at a time.
+
+04:00.860 --> 04:04.880
+As their number grows, the observed proportions converge on the predicted probabilities.
+
+04:14.300 --> 04:16.860
+Suppose that the same qubit is measured a second time.
+
+04:17.200 --> 04:18.880
+The result is the same as the first,
+
+04:19.240 --> 04:22.300
+and it remains the same however often the measurement is repeated.
+
+04:24.960 --> 04:29.380
+The superposition is gone, and unless the qubit is prepared again in a superposition,
+
+04:29.760 --> 04:33.860
+its state is now the outcome itself, and every further measurement simply returns it.
+
+04:40.920 --> 04:41.820
+To sum up.
+
+04:42.320 --> 04:46.740
+The state of a qubit is two complex amplitudes, one for each of the two outcomes.
+
+04:50.540 --> 04:53.580
+Normalisation and the irrelevance of a common phase leave two real parameters:
+
+04:54.080 --> 04:57.160
+the angles theta and phi, which place a point on the Bloch sphere.
+
+04:59.800 --> 05:04.500
+A measurement returns zero or one, with probabilities given by the squared magnitudes,
+
+05:05.060 --> 05:06.960
+and leaves the qubit in the state it returned.

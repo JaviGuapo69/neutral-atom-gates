@@ -1,0 +1,1799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="description" content="Neutral-atom quantum computing: what a qubit is, single-qubit gates, a live Raman drive, the Rydberg CZ gate, and movement extraction.">
+<title>Neutral-Atom Quantum Computing</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@100;200;300;400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+/* Design system lifted from iamsquantum.github.io/new/ so this reads as a
+   subpage of the IAMS Yb Lab site. Deliberately single-theme (dark): every
+   colour is painted explicitly from a token, so it holds on any host ground. */
+:root{
+  --frozen:#FFEBED; --blush:#F6B6B7; --mint:#A6C9B6; --teal:#3E828E;
+  --amethyst:#27153D;
+  --bg:#04050C; --ink:#F7EEF2; --ink-dim:#A395B8;
+  --line:rgba(255,235,237,.16); --panel-bg:rgba(6,8,18,.6);
+  /* instrument colours -- each names a real thing, not a decoration */
+  --grid:rgba(255,235,237,.09);
+  --solid:#0A0C16;
+  --c-atom:#A6C9B6;      /* ground-state atom      */
+  --c-ryd:#FFEBED;       /* Rydberg population     */
+  --c-trap:#F6B6B7;      /* 852 nm tweezer         */
+  --c-420:#8D6BD8;       /* 420 nm, first leg      */
+  --c-1015:#CB5A55;      /* 1015 nm, second leg    */
+  --c-vec:#F6B6B7;       /* Bloch state vector     */
+  --c-axis:#7FD4E2;      /* rotation axis n-hat    */
+  --c-link:#3E828E;      /* entanglement           */
+  /* the Bloch sphere paints its own field, lifted off the panel so the
+     wireframe has something to read against */
+  --sph-bg:#0E1322;
+  --sph-glow:rgba(62,130,142,.30);
+  --sph-grid:rgba(214,226,240,.26);
+  --sph-ring:rgba(232,240,250,.48);
+  --sph-limb:rgba(240,246,252,.62);
+  --sph-axis:rgba(198,208,228,.52);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+/* the host pads :root by the phone's safe-area insets; the reset above
+   would zero it, so put it back */
+:root{padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-behavior:smooth; height:100%}
+html,body{overflow-x:hidden}
+body{background:var(--bg); color:var(--ink);
+  font-family:'Space Mono','Noto Sans TC',ui-monospace,monospace; min-height:100%;
+  display:flex; flex-direction:column}
+.aurora{position:fixed; inset:0; z-index:0; pointer-events:none;
+  background:
+    radial-gradient(900px 600px at 15% 0%, rgba(10,10,26,.9), transparent 60%),
+    radial-gradient(1000px 700px at 85% 10%, rgba(24,32,64,.45), transparent 60%),
+    radial-gradient(800px 900px at 50% 100%, rgba(62,130,142,.10), transparent 60%),
+    radial-gradient(700px 500px at 70% 55%, rgba(246,182,183,.05), transparent 60%)}
+a{color:inherit}
+button{font-family:inherit; color:inherit}
+:focus-visible{outline:2px solid var(--mint); outline-offset:2px}
+
+main{position:relative; z-index:2; flex:1; width:min(1320px,95vw); margin:0 auto;
+  padding-block:26px 60px}
+
+.phead{text-align:center; padding:22px 16px 26px; border:1px solid var(--line); border-radius:18px;
+  background:var(--panel-bg); backdrop-filter:blur(8px); position:relative}
+.phead::before,.phead::after{content:""; position:absolute; top:-1px; height:3px; width:120px;
+  background:var(--blush); box-shadow:0 0 14px rgba(246,182,183,.7)}
+.phead::before{left:24px} .phead::after{right:24px; background:var(--mint); box-shadow:0 0 14px rgba(166,201,182,.7)}
+.phead .dir{font-size:10.5px; letter-spacing:.3em; text-transform:uppercase; color:var(--blush); margin-bottom:12px}
+.phead h1{font-family:'Exo 2',sans-serif; font-weight:100; font-size:clamp(23px,4.2vw,42px);
+  letter-spacing:.08em; color:#FFF6F4; text-wrap:balance;
+  text-shadow:0 0 18px rgba(255,235,237,.3), 0 0 60px rgba(246,182,183,.25)}
+.phead h1 b{font-weight:300; color:var(--blush); text-shadow:0 0 24px rgba(246,182,183,.6)}
+.phead .sub{margin-top:12px; font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-dim)}
+
+/* ---------- tab bar ---------- */
+.tabbar{margin-top:18px; display:flex; flex-wrap:wrap; gap:6px; justify-content:center;
+  padding:9px; border:1px solid var(--line); border-radius:999px; background:rgba(6,8,18,.92);
+  backdrop-filter:blur(10px); position:sticky;
+  top:env(safe-area-inset-top,0px); z-index:20}
+.tabbar button{font-size:11.5px; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--ink-dim); background:transparent; border:1px solid transparent; cursor:pointer;
+  padding:8px 15px; border-radius:999px; transition:color .2s, background .2s, border-color .2s;
+  display:flex; align-items:center; gap:8px}
+.tabbar button:hover{color:var(--frozen); border-color:var(--line)}
+.tabbar button[aria-selected="true"]{color:#04050C; background:var(--mint);
+  box-shadow:0 0 16px rgba(166,201,182,.4)}
+.tabbar button .k{font-size:9px; opacity:.7}
+@media (max-width:920px){ .tabbar{position:static; border-radius:16px} }
+
+/* ---------- sections ---------- */
+.psec{margin-top:26px; border:1px solid var(--line); border-radius:18px;
+  background:var(--panel-bg); backdrop-filter:blur(8px);
+  padding:clamp(18px,3.4vw,32px); position:relative}
+.psec::before{content:""; position:absolute; top:-1px; left:24px; height:3px; width:90px;
+  background:var(--sc,var(--mint)); box-shadow:0 0 14px color-mix(in srgb, var(--sc,#A6C9B6) 70%, transparent)}
+.psec .sh{display:flex; align-items:center; gap:14px; margin-bottom:18px; flex-wrap:wrap}
+.psec .sh .n{font-size:11px; letter-spacing:.26em; color:var(--sc,var(--mint)); white-space:nowrap}
+.psec .sh h2{font-family:'Exo 2',sans-serif; font-weight:200; font-size:clamp(17px,3vw,25px);
+  letter-spacing:.22em; text-transform:uppercase; color:#FFF6F4; text-wrap:balance}
+.psec .sh::after{content:""; flex:1; height:1px; min-width:20px;
+  background:linear-gradient(90deg, color-mix(in srgb, var(--sc,#A6C9B6) 45%, transparent), transparent)}
+.psec p{font-size:13px; line-height:1.9; color:#C2B6D4; max-width:74ch}
+.psec p+p{margin-top:12px}
+.psec p b{color:var(--frozen); font-weight:400; text-shadow:0 0 10px rgba(255,235,237,.25)}
+.psec p a{color:var(--mint); text-decoration:none; border-bottom:1px dashed rgba(166,201,182,.45)}
+.psec p a:hover{color:var(--frozen)}
+.psec ul{margin:12px 0 0 18px; font-size:13px; line-height:1.85; color:#C2B6D4; max-width:74ch}
+.psec li+li{margin-top:6px}
+.psec li b{color:var(--frozen); font-weight:400}
+.psec code{font-size:11.5px; color:var(--mint)}
+
+/* ---------- video ---------- */
+figure.vid{margin:0; border:1px solid var(--line); border-radius:14px; overflow:hidden;
+  background:#02030A}
+figure.vid video{display:block; width:100%; max-width:100%; height:auto; background:#02030A}
+figure.vid figcaption{padding:11px 15px; font-size:10.5px; line-height:1.75; color:var(--ink-dim);
+  border-top:1px dashed var(--line)}
+figure.vid figcaption b{color:var(--blush); font-weight:400}
+
+/* ---------- instrument shell ---------- */
+.work{display:grid; gap:18px; grid-template-columns:minmax(0,1fr)}
+@media(min-width:1000px){ .work.split{grid-template-columns:minmax(0,1fr) 300px} }
+.slab{border:1px solid var(--line); border-radius:14px; background:rgba(3,4,10,.55); overflow:hidden}
+.slab>h3{font-size:10px; letter-spacing:.24em; text-transform:uppercase; color:var(--ink-dim);
+  padding:10px 14px; border-bottom:1px solid var(--line); display:flex;
+  justify-content:space-between; align-items:center; gap:10px; font-weight:400}
+.slab>h3 em{font-style:normal; font-size:9.5px; letter-spacing:.1em; color:#6E6382; text-transform:none}
+.slab .in{padding:14px}
+canvas{display:block; width:100%; touch-action:none}
+#bloch{aspect-ratio:1/1; max-width:100%; border-radius:10px}
+#scene{aspect-ratio:16/6.6; max-width:100%}
+
+.rd{display:flex; justify-content:space-between; align-items:baseline; gap:10px;
+  padding:4px 0; font-size:11.5px; border-bottom:1px dashed rgba(255,235,237,.07)}
+.rd:last-child{border-bottom:0}
+.rd dt{color:var(--ink-dim); letter-spacing:.04em}
+.rd dd{margin:0; color:var(--frozen); white-space:nowrap; font-variant-numeric:tabular-nums}
+.rd dd small{color:#6E6382}
+.rdhead{font-size:9.5px; letter-spacing:.22em; text-transform:uppercase; color:var(--blush);
+  margin:14px 0 6px}
+.rdhead:first-child{margin-top:0}
+.ket{font-size:12px; line-height:1.8; color:var(--frozen); word-break:break-word;
+  font-variant-numeric:tabular-nums}
+
+.ctlgrid{display:grid; gap:14px; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); margin-top:18px}
+.cgroup{border:1px solid var(--line); border-radius:14px; background:rgba(3,4,10,.55); padding:13px 15px 15px}
+.cgroup>h3{font-size:9.5px; letter-spacing:.22em; text-transform:uppercase; color:var(--mint); font-weight:400}
+.cgroup>p{margin:6px 0 11px; font-size:10.5px; line-height:1.65; color:#6E6382}
+.ctl{display:grid; grid-template-columns:1fr auto; gap:3px 10px; align-items:center; margin-bottom:10px}
+.ctl:last-child{margin-bottom:0}
+
+/* tab 03: controls | sphere | readout, sized so the whole tool is one screenful */
+.drivegrid{display:grid; gap:14px; grid-template-columns:minmax(0,1fr)}
+@media(min-width:1140px){
+  .drivegrid{grid-template-columns:412px minmax(0,1fr) 256px; align-items:start}
+}
+.ctlcol{display:grid; gap:11px; align-content:start;
+  grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+.ctlcol .cgroup{padding:10px 12px 12px}
+.ctlcol .cgroup>h3{font-size:9px; letter-spacing:.2em}
+.ctlcol .ctl{margin-bottom:7px; gap:1px 8px}
+.ctlcol .ctl label{font-size:11px}
+.ctlcol .ctl input[type=number]{width:74px; padding:3px 6px; font-size:10.5px}
+.ctlcol .ctl input[type=range]{height:15px; margin-top:1px}
+.ctlcol .prow{margin-top:8px; gap:5px}
+.ctlcol .pbtn{padding:4px 9px; font-size:10px}
+.slab .legend{padding:0 12px 11px; font-size:10px; line-height:1.6; color:#6E6382}
+.slab .legend b{font-weight:400}
+.stagenote{min-height:4.4em; padding:2px 14px 12px !important; font-size:11.5px !important;
+  line-height:1.75 !important; color:#C2B6D4 !important}
+.stagenote .sn{color:var(--blush); letter-spacing:.14em; text-transform:uppercase;
+  font-size:9px; display:block; margin-bottom:4px}
+.stagenote b{color:var(--frozen)}
+
+/* "what's in it" block that sits above a video */
+.vsum{margin-top:16px; border:1px solid var(--line); border-radius:14px;
+  background:rgba(3,4,10,.5); padding:15px 17px}
+.vsum h4{font-size:9.5px; letter-spacing:.22em; text-transform:uppercase; color:var(--blush);
+  font-weight:400; margin-bottom:9px}
+.vsum p{font-size:12.5px !important; line-height:1.8 !important; color:#C2B6D4 !important;
+  margin:0 0 12px !important}
+.chapters{list-style:none; display:grid; gap:3px 26px; grid-template-columns:1fr; margin:0}
+@media(min-width:720px){ .chapters{grid-template-columns:1fr 1fr} }
+.chapters li{display:flex; gap:11px; align-items:baseline; font-size:12px; line-height:1.75;
+  color:#C2B6D4}
+.chapters button{flex:none; font-size:11px; color:var(--mint); background:transparent;
+  border:0; border-bottom:1px dashed rgba(166,201,182,.45); cursor:pointer; padding:0 0 1px;
+  font-variant-numeric:tabular-nums}
+.chapters button:hover{color:var(--frozen); border-bottom-color:var(--frozen)}
+
+.psec .subh{font-family:'Exo 2',sans-serif; font-weight:300; font-size:14.5px; letter-spacing:.18em;
+  text-transform:uppercase; color:#FFF6F4; margin-top:28px}
+.steps{list-style:none; counter-reset:st; margin:14px 0 0; display:grid; gap:12px; max-width:80ch}
+/* the number is positioned, NOT a grid cell: in a grid the raw text nodes
+   after <b> would each become their own grid item and break the line */
+.steps li{counter-increment:st; position:relative; padding-left:36px;
+  font-size:12.5px; line-height:1.8; color:#C2B6D4}
+.steps li::before{content:counter(st,decimal-leading-zero); position:absolute;
+  left:0; top:0; line-height:2.25; font-size:10px; color:var(--mint);
+  letter-spacing:.1em; font-variant-numeric:tabular-nums}
+.steps b{color:var(--frozen); font-weight:400}
+.ctl label{font-size:11.5px; color:#C2B6D4}
+.ctl label i{font-style:normal; color:#6E6382; font-size:10px}
+.ctl input[type=number]{width:84px; background:rgba(255,235,237,.05); color:var(--frozen);
+  border:1px solid var(--line); border-radius:6px; padding:4px 7px;
+  font:400 11px/1.4 'Space Mono',ui-monospace,monospace;
+  text-align:right; font-variant-numeric:tabular-nums}
+.ctl input[type=number]:focus{outline:none; border-color:var(--mint)}
+.ctl input[type=range]{grid-column:1/-1; width:100%; margin:3px 0 0; accent-color:var(--mint); height:18px}
+.prow{display:flex; flex-wrap:wrap; gap:6px; margin-top:11px}
+.pbtn{font-size:10.5px; letter-spacing:.08em; color:#C2B6D4; cursor:pointer;
+  border:1px solid var(--line); background:rgba(255,235,237,.04); border-radius:999px; padding:5px 12px;
+  transition:color .2s, border-color .2s, background .2s}
+.pbtn:hover{color:var(--frozen); border-color:rgba(166,201,182,.6)}
+.pbtn.send{border-color:rgba(95,180,194,.55); color:var(--c-axis)}
+.pbtn.send:hover{background:rgba(95,180,194,.12)}
+
+.timeline{display:flex; align-items:center; gap:12px; padding:11px 14px; border-top:1px solid var(--line)}
+.timeline input[type=range]{flex:1; accent-color:var(--blush)}
+.play{width:36px; height:30px; display:grid; place-items:center; cursor:pointer;
+  border:1px solid var(--line); background:rgba(255,235,237,.04); border-radius:8px;
+  color:var(--frozen); font-size:11px}
+.play:hover{border-color:var(--blush)}
+.stages{display:flex; flex-wrap:wrap; gap:5px; padding:0 14px 13px}
+.stg{font-size:10px; letter-spacing:.04em; padding:4px 9px; border-radius:999px; cursor:pointer;
+  border:1px solid transparent; color:#6E6382; background:rgba(255,235,237,.04); transition:all .2s}
+.stg:hover{color:#C2B6D4}
+.stg.on{background:var(--blush); color:#04050C; border-color:var(--blush)}
+
+.amps{display:grid; grid-template-columns:repeat(4,1fr); gap:9px; height:136px}
+.amp{display:flex; flex-direction:column; justify-content:flex-end; height:100%; gap:5px}
+.amp>*{flex:0 0 auto}
+.amp .val{font-size:9.5px; text-align:center; white-space:nowrap; font-variant-numeric:tabular-nums}
+.amp .bar{border-radius:4px 4px 0 0; min-height:2px; transition:height .06s linear}
+.amp .lab{font-size:11px; text-align:center; color:var(--ink-dim);
+  border-top:1px solid var(--line); padding-top:5px}
+
+.scroll{overflow-x:auto; margin-top:14px}
+table.dat{width:100%; border-collapse:collapse; font-size:11.5px}
+table.dat caption{caption-side:top; text-align:left; font-size:9.5px; letter-spacing:.22em;
+  text-transform:uppercase; color:var(--blush); padding-bottom:8px}
+table.dat th{text-align:left; font-weight:400; font-size:9.5px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--ink-dim); padding:0 12px 7px 0;
+  border-bottom:1px solid var(--line); white-space:nowrap}
+table.dat td{padding:6px 12px 6px 0; border-bottom:1px dashed rgba(255,235,237,.08);
+  color:#C2B6D4; vertical-align:top; font-variant-numeric:tabular-nums}
+table.dat tr:last-child td{border-bottom:0}
+table.dat td.k{color:var(--frozen); white-space:nowrap}
+table.dat td.dim{color:#6E6382; font-size:10.5px; line-height:1.6}
+table.aom td{white-space:nowrap}
+table.aom td.dim{white-space:normal; min-width:180px}
+table.aom tr.g td{border-top:1px solid var(--line)}
+table.aom td i{font-style:normal; color:#6E6382; font-size:10px}
+table.aom td.a1,table.aom td.a2,table.aom td.a3,table.aom td.a4{font-size:10.5px;
+  letter-spacing:.06em}
+table.aom td.a1{color:var(--mint)}
+table.aom td.a2{color:var(--blush)}
+table.aom td.a3{color:var(--c-axis)}
+table.aom td.a4{color:#C79BE8}
+.tnote{margin-top:9px; font-size:10.5px; color:#6E6382; line-height:1.7}
+
+.warn{margin-top:20px; border:1px solid rgba(246,182,183,.4); border-radius:14px;
+  background:linear-gradient(135deg, rgba(39,21,61,.6), rgba(60,26,40,.35));
+  padding:18px 20px}
+.warn h4{font-family:'Exo 2',sans-serif; font-weight:300; font-size:14px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--blush); margin-bottom:10px}
+.warn p{color:#D6C9E4; max-width:74ch; font-size:13px; line-height:1.9}
+.warn p+p{margin-top:12px}
+.warn table.dat td{color:#D6C9E4}
+
+.dls{display:grid; gap:14px; grid-template-columns:repeat(auto-fit,minmax(270px,1fr)); margin-top:18px}
+.dl{display:block; width:100%; text-align:left; text-decoration:none; cursor:pointer;
+  border:1px solid var(--line); border-radius:14px; padding:18px 20px;
+  background:rgba(3,4,10,.55); transition:transform .2s, border-color .2s, box-shadow .2s}
+.dl:hover{transform:translateY(-2px); border-color:rgba(166,201,182,.6);
+  box-shadow:0 0 24px rgba(62,130,142,.22)}
+.dl .t{font-size:9.5px; letter-spacing:.24em; text-transform:uppercase; color:var(--mint)}
+.dl .n{font-family:'Exo 2',sans-serif; font-weight:300; font-size:16px; letter-spacing:.04em;
+  color:#FFF6F4; margin:8px 0 7px}
+.dl .d{font-size:10.5px; line-height:1.7; color:#6E6382}
+.dl .go{display:inline-block; margin-top:12px; font-size:10.5px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--frozen); border-bottom:1px solid rgba(255,235,237,.35);
+  padding-bottom:2px}
+.dl.pending{border-style:dashed; border-color:rgba(246,182,183,.45)}
+.dl.pending .t{color:var(--blush)}
+.dl.pending .go{color:var(--blush); border-color:rgba(246,182,183,.5)}
+
+.flow{margin-top:18px; width:100%; max-width:100%; height:auto}
+
+/* caption strip — used only if the browser will not take the caption track */
+.capwrap{display:flex; gap:11px; align-items:flex-start; padding:10px 15px;
+  border-top:1px dashed var(--line); background:rgba(3,4,10,.5)}
+.capcc{flex:none; font-size:9px; letter-spacing:.14em; padding:4px 9px; border-radius:5px;
+  border:1px solid var(--line); background:transparent; color:var(--ink-dim); cursor:pointer}
+.capcc[aria-pressed="true"]{background:var(--mint); color:#04050C; border-color:var(--mint)}
+.captxt{flex:1; min-height:2.8em; font-size:12.5px; line-height:1.7; color:var(--frozen);
+  white-space:pre-line}
+
+.cta{margin-top:30px; text-align:center; padding:34px 20px; border-radius:18px;
+  border:1px solid var(--line);
+  background:radial-gradient(600px 300px at 50% 0%, rgba(246,182,183,.12), transparent 70%), var(--panel-bg)}
+.cta h2{font-family:'Exo 2',sans-serif; font-weight:200; font-size:clamp(17px,2.6vw,23px);
+  letter-spacing:.24em; text-transform:uppercase; color:#FFF6F4}
+.cta .btns{margin-top:18px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap}
+.cta a{display:inline-block; text-decoration:none; font-size:11.5px; letter-spacing:.2em;
+  text-transform:uppercase; border-radius:999px; padding:12px 26px; transition:transform .2s}
+.cta a.b1{color:#04050C; background:var(--blush); box-shadow:0 0 22px rgba(246,182,183,.45)}
+.cta a.b2{color:var(--ink); border:1px solid var(--line)}
+.cta a:hover{transform:translateY(-2px)}
+
+footer{position:relative; z-index:2; border-top:1px solid var(--line);
+  padding:18px clamp(20px,5vw,60px) 24px; display:flex; flex-wrap:wrap;
+  justify-content:space-between; gap:12px 24px; font-size:12px; color:var(--ink-dim)}
+footer nav{display:flex; flex-wrap:wrap; gap:4px 16px}
+footer a{text-decoration:none; transition:color .2s}
+footer a:hover{color:var(--frozen)}
+
+@media (prefers-reduced-motion:reduce){
+  .amp .bar{transition:none}
+  html{scroll-behavior:auto}
+}
+[hidden]{display:none !important}
+</style>
+</head>
+<body>
+<div class="aurora" aria-hidden="true"></div>
+
+<main>
+  <div class="phead">
+    <div class="dir">Atom-array quantum computing</div>
+    <h1>Neutral-Atom <b>Quantum Computing</b></h1>
+    <div class="sub">From one qubit · to a two-atom gate · to reading a machine's moves out of its own movie</div>
+  </div>
+
+  <nav class="tabbar" role="tablist" aria-label="Sections">
+    <button role="tab" id="t-qubit"  aria-controls="p-qubit"  aria-selected="true"><span class="k">01</span>What a qubit is</button>
+    <button role="tab" id="t-gates"  aria-controls="p-gates"  aria-selected="false"><span class="k">02</span>Single-qubit gates</button>
+    <button role="tab" id="t-drive"  aria-controls="p-drive"  aria-selected="false"><span class="k">03</span>Drive one atom</button>
+    <button role="tab" id="t-cz"     aria-controls="p-cz"     aria-selected="false"><span class="k">04</span>The CZ gate</button>
+    <button role="tab" id="t-skill"  aria-controls="p-skill"  aria-selected="false"><span class="k">05</span>Movement extraction</button>
+  </nav>
+
+<!-- ============================================================ 01 QUBIT -->
+<section id="p-qubit" role="tabpanel" aria-labelledby="t-qubit">
+  <div class="psec" style="--sc:var(--blush)">
+    <div class="sh"><span class="n">01</span><h2>What a Qubit Is</h2></div>
+    <p>This video explains what a qubit is: the two basis states, superposition, the complex
+      amplitudes that describe it, and what happens when you measure one.</p>
+
+    <div class="vsum">
+      <h4>What happens in it</h4>
+      <p>A qubit is a system with two states, and its state is <b>two complex numbers</b> — one
+        weight for each possible outcome. That looks like four real numbers, but two of them turn
+        out not to matter, and the two that remain are exactly the two angles needed to place a
+        point on a sphere. That sphere is the Bloch sphere, and it is how the rest of this page
+        draws a qubit. The video closes on what a measurement does: it returns one of the two
+        values, with probability set by the weights, and leaves the qubit in whatever it returned.</p>
+      <ol class="chapters" data-for="vid-qubit">
+        <li><button data-t="6">0:06</button><span>A classical bit, and a qubit</span></li>
+        <li><button data-t="19">0:19</button><span>Superposition: both values at once</span></li>
+        <li><button data-t="43">0:43</button><span>What a qubit physically is</span></li>
+        <li><button data-t="82">1:22</button><span>The two complex amplitudes</span></li>
+        <li><button data-t="134">2:14</button><span>Why only two numbers survive</span></li>
+        <li><button data-t="162">2:42</button><span>The Bloch sphere, &theta; and &phi;</span></li>
+        <li><button data-t="213">3:33</button><span>What measuring does</span></li>
+        <li><button data-t="280">4:40</button><span>Summary</span></li>
+      </ol>
+    </div>
+
+    <figure class="vid" style="margin-top:18px">
+      <video id="vid-qubit" controls preload="metadata" playsinline poster="nag/qubit-intro-poster.jpg">
+        <source src="nag/qubit-intro.mp4" type="video/mp4">
+      </video>
+      <figcaption><b>What a qubit is</b> — 5 min 11 s · English captions.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ============================================================ 02 GATES -->
+<section id="p-gates" role="tabpanel" aria-labelledby="t-gates" hidden>
+  <div class="psec" style="--sc:var(--mint)">
+    <div class="sh"><span class="n">02</span><h2>Single-Qubit Gates</h2></div>
+    <p>A single-qubit gate is a <b>rotation of the Bloch sphere</b>. Shine resonant light on the atom
+      and the arrow turns; how far it turns is set by how hard and how long you drive it, and the
+      <i>axis</i> it turns about is set by the phase of the light and by how far off resonance you are.
+      An X gate is half a turn about the x axis; a Hadamard is a quarter turn that takes a pole to
+      the equator. Everything else is the same machinery with different numbers.</p>
+    <p>Throughout this page the qubit is a <b>&sup8;&#8311;Rb atom</b> held in an optical tweezer, and
+      the two levels are its hyperfine clock states. Every number in tab 03 — the linewidth, the
+      saturation intensity, the detuning — is a rubidium number.</p>
+
+    <div class="vsum">
+      <h4>What happens in it</h4>
+      <p>The video starts from a two-level atom and asks what laser light does to it. The light is
+        an oscillating electric field; it couples the two levels at a rate called the
+        <b>Rabi frequency &Omega;</b>. Combine that with the <b>detuning &delta;</b> — how far the
+        laser sits from resonance — and you get a single axis in space. The state then simply
+        <b>precesses about that axis</b>, at a rate set by its length. Everything else follows:
+        on resonance the axis lies on the equator and the state sweeps pole to pole, so a pulse of
+        the right length flips the atom. That pulse is the &pi; pulse, and it is the X gate.</p>
+      <ol class="chapters" data-for="vid-bloch">
+        <li><button data-t="3">0:03</button><span>A two-level atom is the qubit</span></li>
+        <li><button data-t="30">0:30</button><span>Laser light couples the two levels</span></li>
+        <li><button data-t="54">0:54</button><span>The Rabi frequency &Omega;</span></li>
+        <li><button data-t="75">1:15</button><span>Detuning &delta;, and the combined rate</span></li>
+        <li><button data-t="104">1:44</button><span>Rabi oscillations, on and off resonance</span></li>
+        <li><button data-t="154">2:34</button><span>The state as a vector on the sphere</span></li>
+        <li><button data-t="187">3:07</button><span>Precession about the drive axis</span></li>
+        <li><button data-t="235">3:55</button><span>The &pi; pulse &mdash; the X gate</span></li>
+      </ol>
+    </div>
+
+    <figure class="vid" style="margin-top:18px">
+      <video id="vid-bloch" controls preload="metadata" playsinline poster="nag/bloch-rotation-poster.jpg">
+        <source src="nag/bloch-rotation.mp4" type="video/mp4">
+      </video>
+      <figcaption><b>Turning the Bloch sphere</b> — 5 min 18 s · 繁體中文 captions.</figcaption>
+    </figure>
+
+    <p style="margin-top:20px">Tab 03 turns this into a working instrument: you set the real laser
+      parameters and watch where the arrow actually lands.</p>
+  </div>
+</section>
+
+<!-- ============================================================ 03 DRIVE -->
+<section id="p-drive" role="tabpanel" aria-labelledby="t-drive" hidden>
+  <div class="psec" style="--sc:var(--teal)">
+    <div class="sh"><span class="n">03</span><h2>Driving One Atom</h2></div>
+    <p>A two-photon Raman drive between the two clock states of a single <b>&sup8;&#8311;Rb</b> atom.
+      <b>Nothing here is a free knob:</b> the drive strength &Omega;<sub>eff</sub> and the rate at which
+      the atom scatters stray photons are both computed from the <i>same</i> beam power, waists and
+      laser detuning — so you cannot make the gate faster without also making it leakier.</p>
+
+    <div class="drivegrid" style="margin-top:16px">
+      <div class="ctlcol" id="ctl1q"></div>
+
+      <div class="slab">
+        <h3>Bloch sphere <em>drag to orbit</em></h3>
+        <div class="in" style="padding:6px"><canvas id="bloch"></canvas></div>
+        <p class="legend"><b style="color:var(--c-vec)">Pink arrow</b> = the atom's state ·
+          <b style="color:var(--c-atom)">green trail</b> = the path it took during the pulse ·
+          <b style="color:var(--c-axis)">dashed n̂</b> = the axis it turns about. Push the
+          two-photon detuning &delta; off zero and n̂ tilts off the equator — which is why a
+          detuned pulse can no longer reach the far pole.</p>
+      </div>
+
+      <div class="slab">
+        <h3>Readout</h3>
+        <div class="in">
+          <div class="rdhead">From the beam</div>
+          <dl style="margin:0">
+            <div class="rd"><dt>I / I<sub>sat</sub></dt><dd id="r_irel">—</dd></div>
+            <div class="rd"><dt>&Omega;<sub>bare</sub></dt><dd id="r_obare">—</dd></div>
+            <div class="rd"><dt>&Omega;<sub>eff</sub></dt><dd id="r_oeff">—</dd></div>
+            <div class="rd"><dt>Scattering R<sub>sc</sub></dt><dd id="r_rsc">—</dd></div>
+          </dl>
+          <div class="rdhead">This pulse</div>
+          <dl style="margin:0">
+            <div class="rd"><dt>Turn angle &theta;</dt><dd id="r_theta">—</dd></div>
+            <div class="rd"><dt>&pi; pulse time t<sub>&pi;</sub></dt><dd id="r_tpi">—</dd></div>
+            <div class="rd"><dt>Scattering error</dt><dd id="r_errp">—</dd></div>
+          </dl>
+          <div class="rdhead">Where the arrow lands</div>
+          <p class="ket" id="r_ket" style="margin:0 0 9px">—</p>
+          <dl style="margin:0">
+            <div class="rd"><dt>P(0)</dt><dd id="r_p0">—</dd></div>
+            <div class="rd"><dt>P(1)</dt><dd id="r_p1">—</dd></div>
+            <div class="rd"><dt>Bloch x, y, z</dt><dd id="r_bloch" style="font-size:10.5px">—</dd></div>
+          </dl>
+          <div class="prow">
+            <button class="pbtn send" id="sendA">send to atom A</button>
+            <button class="pbtn send" id="sendB">send to atom B</button>
+          </div>
+          <p style="margin:9px 0 0; font-size:10px; line-height:1.6; color:#6E6382" id="sendNote">
+            Hands this state to the CZ gate in tab 04.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 04 CZ -->
+<section id="p-cz" role="tabpanel" aria-labelledby="t-cz" hidden>
+  <div class="psec" style="--sc:var(--blush)">
+    <div class="sh"><span class="n">04</span><h2>The CZ Gate on Two Atoms</h2></div>
+    <p>To entangle two atoms they must interact with each other. To do that we take them to a very
+      excited <b>Rydberg state</b>, where two atoms a micron apart shift each other's energy so
+      strongly that they cannot both be excited at once. That is the <b>blockade</b>, and it is what
+      makes the gate. Both atoms are flooded by the same beams to achieve this state.</p>
+
+    <div class="work split" style="margin-top:20px">
+      <div class="slab">
+        <h3>Gate sequence <em id="sceneClock"></em></h3>
+        <div class="in" style="padding:6px"><canvas id="scene"></canvas></div>
+        <p class="legend stagenote" id="stageNote"></p>
+        <div class="timeline">
+          <button class="play" id="play" aria-label="Play or pause">&#9654;</button>
+          <input type="range" id="scrub" min="0" max="269" step="1" value="120" aria-label="Timeline">
+        </div>
+        <div class="stages" id="stages"></div>
+      </div>
+
+      <div class="slab">
+        <h3>The two-qubit state</h3>
+        <div class="in">
+          <div class="amps" id="amps"></div>
+          <p style="margin:11px 0 0; font-size:10px; line-height:1.6; color:#6E6382">
+            Bar height is how much of each outcome the pair holds.
+            <span style="color:var(--c-atom)">Green</span> = phase 0,
+            <span style="color:var(--c-1015)">red</span> = phase &pi;. The gate's whole job is to
+            flip the sign of <b style="color:var(--frozen)">|11&rangle;</b> and nothing else.</p>
+          <div class="rdhead">Result</div>
+          <dl style="margin:0">
+            <div class="rd"><dt>Entanglement</dt><dd id="r_conc">—</dd></div>
+            <div class="rd"><dt>Rydberg population</dt><dd id="r_ryd">—</dd></div>
+          </dl>
+          <p class="ket" id="r_kin" style="margin:11px 0 0; font-size:11px">—</p>
+          <p class="ket" id="r_kout" style="margin:5px 0 0; font-size:11px">—</p>
+          <p style="margin:9px 0 0; font-size:10px; line-height:1.6; color:#6E6382" id="r_entnote"></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="ctlgrid" id="ctlcz"></div>
+
+    <div class="scroll">
+      <table class="dat">
+        <caption>Light actually fired</caption>
+        <thead><tr><th>Beam</th><th>Wavelength</th><th>Waist</th><th>Duration</th><th>Role</th></tr></thead>
+        <tbody>
+          <tr><td class="k"><span style="color:var(--c-trap)">■</span> Tweezer trap</td>
+              <td class="k">852 nm</td><td>~1 &micro;m</td><td>off for 400 ns</td>
+              <td class="dim">Holds the atoms. Switched off so the gate light is not fighting it.</td></tr>
+          <tr><td class="k"><span style="color:var(--c-420)">■</span> Rydberg leg 1</td>
+              <td class="k">420 nm</td><td>30 &micro;m</td><td id="bt_t1">—</td>
+              <td class="dim">7.8 GHz red of 5S→6P<sub>3/2</sub>; its amplitude is shaped over the pulse.</td></tr>
+          <tr><td class="k"><span style="color:var(--c-1015)">■</span> Rydberg leg 2</td>
+              <td class="k">1015 nm</td><td>35 &micro;m</td><td id="bt_t2">—</td>
+              <td class="dim">7.8 GHz blue of 6P<sub>3/2</sub>→53S; held constant.</td></tr>
+        </tbody>
+      </table>
+      <p class="tnote">Blockade energy 950 MHz at 1.73 &micro;m, which is <b style="color:var(--frozen)">56&times;</b>
+        the drive strength — strong enough that the doubly-excited state is simply unavailable.
+        The shaped pulse used here closes the gate to a conditional phase of
+        <b style="color:var(--frozen)" id="t_dphi">—</b> against a target of 180°, fidelity
+        <b style="color:var(--frozen)" id="t_F">—</b>.
+        Machine numbers from Evered <i>et al.</i> 2026, arXiv:2604.25987.</p>
+    </div>
+
+    <div class="scroll" style="margin-top:22px">
+      <table class="dat">
+        <caption>Where the time actually goes</caption>
+        <thead><tr><th>Step</th><th>Duration</th><th>Share of the cycle</th></tr></thead>
+        <tbody>
+          <tr><td class="k">Move the pair together</td><td>195 &micro;s</td><td>49.95%</td></tr>
+          <tr><td class="k">Traps off, fire the pulse</td><td id="tb_dark">—</td><td id="tb_darkp">—</td></tr>
+          <tr><td class="k">Move the pair apart</td><td>195 &micro;s</td><td>49.95%</td></tr>
+        </tbody>
+      </table>
+      <p class="tnote" id="tbudNote">—</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 05 SKILL -->
+<section id="p-skill" role="tabpanel" aria-labelledby="t-skill" hidden>
+  <div class="psec" style="--sc:var(--mint)">
+    <div class="sh"><span class="n">05</span><h2>Movement Extraction</h2></div>
+    <p>We have <b>simulated</b> videos of a neutral-atom quantum computer shuttling atoms around a
+      grid — animations of a syndrome-extraction cycle, not footage of hardware. This tool turns one
+      of those videos back into <b>the instruction list that produced it</b>: a spreadsheet saying
+      which atoms were picked up, when, and where they were put down. Then it runs the process
+      backwards, rendering that spreadsheet into a new video and putting the two side by side, so
+      you can <i>see</i> whether the answer is right rather than take anyone's word for it.</p>
+
+    <svg class="flow" viewBox="0 0 900 150" role="img"
+         aria-label="Pipeline: the movie becomes a spreadsheet of instructions, which is rendered back into a rebuilt movie, which you watch against the original.">
+      <defs>
+        <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+          <path d="M0,0 L10,5 L0,10 z" fill="#A6C9B6"></path>
+        </marker>
+      </defs>
+      <g font-family="'Space Mono',monospace" font-size="12">
+        <rect x="8" y="30" width="200" height="56" rx="12" fill="rgba(166,201,182,.07)" stroke="#A6C9B6" stroke-width="1"></rect>
+        <text x="108" y="54" fill="#FFF6F4" text-anchor="middle">the movie</text>
+        <text x="108" y="72" fill="#8E84A3" text-anchor="middle" font-size="10">.mp4 of a simulated cycle</text>
+
+        <rect x="266" y="30" width="200" height="56" rx="12" fill="rgba(246,182,183,.07)" stroke="#F6B6B7" stroke-width="1"></rect>
+        <text x="366" y="54" fill="#FFF6F4" text-anchor="middle">a spreadsheet</text>
+        <text x="366" y="72" fill="#8E84A3" text-anchor="middle" font-size="10">every move, timed</text>
+
+        <rect x="524" y="30" width="200" height="56" rx="12" fill="rgba(166,201,182,.07)" stroke="#A6C9B6" stroke-width="1"></rect>
+        <text x="624" y="54" fill="#FFF6F4" text-anchor="middle">a rebuilt movie</text>
+        <text x="624" y="72" fill="#8E84A3" text-anchor="middle" font-size="10">rendered from the sheet</text>
+
+        <rect x="740" y="30" width="152" height="56" rx="12" fill="rgba(62,130,142,.16)" stroke="#3E828E" stroke-width="1"></rect>
+        <text x="816" y="54" fill="#FFF6F4" text-anchor="middle">you watch</text>
+        <text x="816" y="72" fill="#8E84A3" text-anchor="middle" font-size="10">side by side</text>
+
+        <line x1="214" y1="58" x2="258" y2="58" stroke="#A6C9B6" stroke-width="1.4" marker-end="url(#ah)"></line>
+        <line x1="472" y1="58" x2="516" y2="58" stroke="#A6C9B6" stroke-width="1.4" marker-end="url(#ah)"></line>
+        <line x1="730" y1="58" x2="734" y2="58" stroke="#A6C9B6" stroke-width="1.4" marker-end="url(#ah)"></line>
+
+        <path d="M816,92 L816,120 L366,120 L366,92" fill="none" stroke="#3E828E" stroke-width="1.2"
+              stroke-dasharray="5,4" marker-end="url(#ah)"></path>
+        <text x="591" y="137" fill="#8E84A3" text-anchor="middle" font-size="10">you report what is wrong, by frame number — and it is corrected</text>
+      </g>
+    </svg>
+
+    <h3 class="subh">Where the traps come from</h3>
+    <p style="margin-top:12px">The tweezers are made by <b>acousto-optic deflectors</b>. An AOD is a crystal with a sound wave
+      running through it; the sound acts as a moving diffraction grating, so a laser passing through
+      comes out deflected by an angle set by the radio-frequency <i>tone</i> driving the crystal.
+      Drive it with several tones at once and you get several beams at once — one trap per tone.</p>
+    <p>The machine crosses two of them. One AOD fans the light out into <b>columns</b>, a second,
+      rotated by 90°, fans it into <b>rows</b>, and the light passes through both — so a trap appears
+      at <b>every intersection</b> of a driven column with a driven row. Ten x tones and six y tones
+      do not give you sixteen traps; they give you sixty, in a 10 × 6 block. That is exactly the X0
+      block in the example below, and it is why the workbook records a move as a list of
+      <code>x_tones</code> and a list of <code>y_tones</code> rather than a list of atoms. The grid
+      is the product of the two lists, so an arbitrary subset of it cannot be addressed at all.</p>
+    <p>Moving the atoms means <b>sliding the tone frequencies</b>. Change one x tone and the entire
+      column it created sweeps across the lattice, carrying every atom sitting in it. A single
+      instruction is therefore: <i>this set of columns, crossed with this set of rows, moved to
+      there</i>.</p>
+    <p>So when a block of atoms shuffles itself around internally, that is not one instruction. It is
+      several rectangles moving at the same time on <b>separate crossed pairs</b> — the workbook calls
+      them AOM groups, and c300 needs four of them running at once. Working out how many there were,
+      and which atoms were in each, is the entire difficulty of the job.</p>
+
+    <h3 class="subh">How it reads the movie</h3>
+    <ol class="steps">
+      <li><b>It works frame by frame.</b> c300 is 384 frames covering 7.22 ms — one frame every
+        0.019 ms. Every number in the workbook is measured on these frames, and every row says which
+        frames it came from.</li>
+
+      <li><b>It does not chase individual atoms around.</b> Each frame is flattened into two
+        one-dimensional colour profiles: add the picture up column by column, then row by row. Each
+        species of atom has its own colour, so a peak in the column profile says <i>atoms of this
+        colour are at this column, right now</i>. This is far steadier than tracking markers, and it
+        locates a block to a small fraction of one lattice spacing.</li>
+
+      <li><b>The still frames carry the answer.</b> Between moves everything sits at rest on whole
+        lattice sites, which gives a clean reading of exactly which columns and rows each species
+        occupies. A movement is then the difference between one rest state and the next one.</li>
+
+      <li><b>Gate pulses cut the film into pieces.</b> When a gate fires, the movie flashes and
+        nothing moves. Those flashes work as punctuation: they split the film into pulse-free
+        intervals, and each interval is solved on its own instead of all at once.</li>
+
+      <li><b>Then it solves for the rectangles.</b> Knowing the occupancy before and after, it
+        searches for the smallest set of column × row rectangles that carries one into the other.
+        This is where the difficulty lives — the same before-and-after can be produced by several
+        different sets of rectangles, and only the frames <i>in between</i> tell them apart.</li>
+
+      <li><b>The timing comes from those in-between frames.</b> Atoms accelerate and decelerate along
+        a fixed easing curve rather than moving at constant speed. Fitting the measured positions
+        across the intermediate frames to that curve pins down when each move started and finished,
+        to a fraction of a frame.</li>
+
+      <li><b>Finally it marks its own work.</b> The finished workbook is rendered back into a movie
+        and compared with the original, position by position. Every row in the schedule reports how
+        far its rebuilt positions landed from the measured ones, in lattice sites — those are the
+        0.118 and 0.032 figures in the table below.</li>
+    </ol>
+    <p class="tnote" style="max-width:80ch">The movie runs at only 8 frames per second, so a quick
+      move may be covered by just a handful of frames. When that happens the geometry can be
+      genuinely ambiguous — more than one set of rectangles fits everything the frames show — and the
+      Python cannot decide between them on its own. <b style="color:var(--frozen)">That is where
+      Claude does the work</b>: reading those frames directly, judging which reading is consistent
+      with the rest of the cycle, and saying plainly when it still cannot tell.</p>
+  </div>
+
+  <div class="psec" style="--sc:var(--blush)">
+    <div class="sh"><span class="n">A</span><h2>A Worked Example: c300</h2></div>
+    <p>A 20 × 18 lattice, four species of atom, 384 frames, one full syndrome-extraction cycle lasting
+      7.22 ms. Here is the simulated movie, the input the tool is given.</p>
+
+    <figure class="vid" style="margin-top:18px">
+      <video controls preload="metadata" playsinline loop muted poster="nag/c300-original-poster.jpg">
+        <source src="nag/c300-original.mp4" type="video/mp4">
+      </video>
+      <figcaption><b>The original.</b> Each marker is a group of atoms; watch them slide in blocks,
+        pause while a gate pulse fires, and slide again. 48 s at 8 fps.</figcaption>
+    </figure>
+
+    <p style="margin-top:22px">And here is what comes out the other end — a workbook of six sheets.
+      These are real rows from <code>c300_full_blocks.xlsx</code>. The first two sheets set the scene;
+      the third is the answer.</p>
+
+    <div class="scroll">
+      <table class="dat">
+        <caption>Constants — what was measured about the movie itself</caption>
+        <tbody>
+          <tr><td class="k">lattice</td><td>20 × 18 data sites</td><td class="dim">row 1 is topmost; y increases downward</td></tr>
+          <tr><td class="k">cycle_ms</td><td>7.22</td><td class="dim">the full movie</td></tr>
+          <tr><td class="k">frames</td><td>384</td><td class="dim">dt = 0.018802 ms per frame</td></tr>
+          <tr><td class="k">easing</td><td>s(u) = 10u³ − 15u⁴ + 6u⁵</td><td class="dim">verified against the movie</td></tr>
+          <tr><td class="k">aom_groups_used</td><td>4</td><td class="dim">crossed AOD pairs required</td></tr>
+          <tr><td class="k">transitions_found</td><td>75</td><td class="dim">enumerated from occupancy</td></tr>
+          <tr><td class="k">moves_measured</td><td>64</td><td class="dim">one rectangle may carry two species</td></tr>
+          <tr><td class="k" style="color:var(--mint)">transitions_undetermined</td><td style="color:var(--mint)">0</td><td class="dim">nothing was guessed</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="scroll">
+      <table class="dat">
+        <caption>Seed — where every species sits at t = 0</caption>
+        <thead><tr><th>Species</th><th>x tones</th><th>y tones</th></tr></thead>
+        <tbody>
+          <tr><td class="k">X0</td><td>1:10</td><td>1:6</td></tr>
+          <tr><td class="k">X1</td><td>11:20</td><td>1:6</td></tr>
+          <tr><td class="k">Z0</td><td>1:10</td><td>13:18</td></tr>
+          <tr><td class="k">Z1</td><td>−9:0</td><td>13:18</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="scroll">
+      <table class="dat aom">
+        <caption>Combined — the AOM account, which is the part that matters</caption>
+        <thead><tr><th>What moves</th><th>AOM group</th><th>x tones</th><th>y tones</th><th>Time (ms)</th><th>Read from</th></tr></thead>
+        <tbody>
+          <tr class="g"><td class="k">Rydberg gate</td><td class="a1">AOM 1</td><td>1:20 <i>held</i></td><td>1:6</td><td>0 – 0.0188</td><td class="dim" rowspan="2">frames 0–1; the tones are the configuration held during the pulse</td></tr>
+          <tr><td></td><td class="a2">AOM 2</td><td>0:10 <i>held</i></td><td>13:18</td><td>0 – 0.0188</td></tr>
+
+          <tr class="g"><td class="k">X0 columns</td><td class="a1">AOM 1</td><td>1:4 → 7:10</td><td>1:6</td><td>0 – 0.2211</td><td class="dim" rowspan="2">frames 2–13; 0.118 site</td></tr>
+          <tr><td></td><td class="a2">AOM 2</td><td>5:10 → 1:6</td><td>1:6</td><td>0 – 0.2211</td></tr>
+
+          <tr class="g"><td class="k">X1 columns</td><td class="a1">AOM 1</td><td>11:14 → 17:20</td><td>1:6</td><td>0 – 0.2211</td><td class="dim" rowspan="2">frames 2–14; 0.114 site</td></tr>
+          <tr><td></td><td class="a2">AOM 2</td><td>15:20 → 11:16</td><td>1:6</td><td>0 – 0.2211</td></tr>
+
+          <tr class="g"><td class="k">Z0 columns</td><td class="a3">AOM 3</td><td>1:9 → 2:10</td><td>13:18</td><td>0 – 0.28</td><td class="dim" rowspan="2">frames 2–16; 0.032 site</td></tr>
+          <tr><td></td><td class="a4">AOM 4</td><td>10 → 1</td><td>13:18</td><td>0 – 0.28</td></tr>
+
+          <tr class="g"><td class="k">X1 + X0 rows</td><td class="a1">AOM 1</td><td>1:20</td><td>1:3 → 10:12</td><td>0.2211 – 0.5233</td><td class="dim" rowspan="2">frames 13–27; 0.063 site. One rectangle, two species at once</td></tr>
+          <tr><td></td><td class="a2">AOM 2</td><td>1:20</td><td>4:6 → 7:9</td><td>0.2211 – 0.5233</td></tr>
+
+          <tr class="g"><td class="k">Z0 rows</td><td class="a3">AOM 3</td><td>1:10</td><td>13,15,17 → 14,16,18</td><td>0.28 – 0.3781</td><td class="dim" rowspan="2">frames 16–21; 0.036 site. Interleaved rows swapping past each other</td></tr>
+          <tr><td></td><td class="a4">AOM 4</td><td>1:10</td><td>14,16,18 → 13,15,17</td><td>0.28 – 0.3781</td></tr>
+        </tbody>
+      </table>
+      <p class="tnote">This is the instruction list proper: <b style="color:var(--frozen)">which AOM
+        group is driving which tones, and what those tones slide to.</b> Notice that AOM 1 is carrying
+        <i>both</i> the X0 and the X1 column moves over the same 0 – 0.2211 ms, at different tone
+        groups — one deflector holds many tones at once, which is why 64 measured moves fit into four
+        groups. The workbook has columns out to AOM 8; c300 never needs more than four.</p>
+      <p class="tnote">Every row also carries its own evidence: the frames it was read from, and how
+        far the rebuilt positions sit from the measured ones in units of one lattice site. A move that
+        could not be determined is <b style="color:var(--frozen)">listed as undetermined</b>, never
+        filled in with a plausible-looking number.</p>
+    </div>
+
+    <p style="margin-top:22px">Finally, the workbook is rendered back into a movie and set beside the
+      original. Left is the source movie, centre is the block decomposition it was reduced to, right
+      is the rebuild. If they move together, the transcription is right.</p>
+
+    <figure class="vid" style="margin-top:18px">
+      <video controls preload="metadata" playsinline loop muted poster="nag/c300-compare-poster.jpg">
+        <source src="nag/c300-compare.mp4" type="video/mp4">
+      </video>
+      <figcaption><b>Original · decomposition · rebuild.</b> The middle panel names the rectangles
+        used at each step. 48 s at 8 fps.</figcaption>
+    </figure>
+  </div>
+
+  <div class="psec" style="--sc:var(--teal)">
+    <div class="sh"><span class="n">B</span><h2>How You Use It</h2></div>
+    <p>You do not run commands. You talk to <b>Claude Code</b>, which reads the instructions in the
+      package and runs them. Install it once by copying the two folders inside
+      <code>skills\</code> into <code>.claude\skills\</code> in whatever directory you want to work in,
+      then open Claude Code there. After that the entire interface is four sentences:</p>
+
+    <div class="scroll">
+      <table class="dat">
+        <caption>The whole interface</caption>
+        <thead><tr><th>When you want</th><th>You say</th></tr></thead>
+        <tbody>
+          <tr><td class="k">to start a movie</td><td class="dim">“Transcribe &lt;path to the .mp4&gt; into a schedule workbook using the se-cycle-blocks skill.”</td></tr>
+          <tr><td class="k">it to check its own work</td><td class="dim">“Now apply the handmade correction method: find your own mistakes, fix them, and give me a new video.”</td></tr>
+          <tr><td class="k">to report something you saw</td><td class="dim">“Wrong movement between frames 176 and 184.”</td></tr>
+          <tr><td class="k">to finish</td><td class="dim">“That video is correct. Consider it closed.”</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="warn">
+      <h4>Why you have to watch the video yourself</h4>
+      <p>There is a kind of error that <b>no automatic check can catch, by construction</b>. Before
+        and after, everything sits in exactly the same places — so every automatic check sees a
+        perfect match. Only the frames in between differ.</p>
+      <p>This was tested by taking a finished, correct workbook and deliberately breaking one movement
+        in it, then running every automatic check on the broken file:</p>
+      <div class="scroll">
+        <table class="dat">
+          <thead><tr><th>Check</th><th>What it said about the broken file</th></tr></thead>
+          <tbody>
+            <tr><td class="k">structural audit</td><td style="color:var(--blush)">clean</td></tr>
+            <tr><td class="k">atom count</td><td style="color:var(--blush)">clean</td></tr>
+            <tr><td class="k">render validation</td><td style="color:var(--blush)">0 problems, “self-consistent”</td></tr>
+            <tr><td class="k">accuracy score</td><td style="color:var(--blush)">0.044 — a good score</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>All four passed. Anyone who trusted them would have shipped the wrong answer.
+        <b>So play the side-by-side video and look for a small group of markers that swaps places in
+        the source movie but stays still in the rebuild, or the reverse.</b> Note the frame number and
+        say so. Do not check still frames instead — at rest the two always agree, and that is
+        precisely the problem.</p>
+    </div>
+
+    <p style="margin-top:20px"><b>What “good” looks like:</b> an accuracy score of 0.03–0.06 (a first
+      draft is usually 0.3–0.8), zero movements left undetermined, all automatic checks clean — and,
+      the row that actually counts, <b>you have watched it and said so</b>.</p>
+
+    <ul>
+      <li><b>Claude will sometimes say “I don't know.”</b> Some things genuinely cannot be seen in the
+        video — where a block goes after it is carried off the edge of the screen, for instance.
+        Saying so is correct behaviour; filling the gap with plausible numbers is worse.</li>
+      <li><b>Nothing transfers between movies.</b> Colours, block sizes, grid size, timings, which edge
+        the spare atoms wait on — all measured fresh every time. Never reuse a number from a previous
+        movie.</li>
+      <li><b>Never edit the spreadsheet by hand.</b> Several sheets are generated from the others.
+        Change the underlying movement list and regenerate.</li>
+    </ul>
+  </div>
+
+  <div class="psec" style="--sc:var(--blush)">
+    <div class="sh"><span class="n">C</span><h2>Downloads</h2></div>
+    <p>Eleven movies have been transcribed, corrected and verified this way. The package below is
+      everything needed to run the process on a new one; the archive is every finished result.</p>
+
+    <div class="dls">
+      <a class="dl" id="dl-skill" href="nag/movement-extraction-skill.zip" download="movement-extraction-skill.zip">
+        <div class="t">Run it yourself · 10.3 MB</div>
+        <div class="n">Movement extraction package</div>
+        <div class="d">The two Claude Code skills, the run book, the correction method, the reference
+          notes, and one complete worked session to read through. Start with
+          <b style="color:#C2B6D4">START HERE.md</b>.</div>
+        <span class="go">Download .zip &#8594;</span>
+      </a>
+
+      <a class="dl" id="dl-closed" href="https://github.com/JaviGuapo69/neutral-atom-tools/tree/main/closed%20videos" target="_blank" rel="noopener">
+        <div class="t">Finished results · ~160 MB</div>
+        <div class="n">Closed videos &amp; workbooks</div>
+        <div class="d">All eleven verified transcriptions: each movie's workbook plus its
+          side-by-side and multi-panel comparison videos. Use these to learn what a correct
+          result looks like — do not re-run them.</div>
+        <span class="go">Browse on GitHub &#8594;</span>
+      </a>
+    </div>
+    <p class="tnote">The package downloads straight from this site. The eleven finished results live
+      in a companion repository, linked above.</p>
+  </div>
+
+</section>
+
+</main>
+
+<footer>
+  <span>Tabs 03 and 04 solve the physics in your browser on every slider move — nothing here is a
+    pre-rendered picture.</span>
+  <span>Machine numbers for the CZ gate from Evered <i>et al.</i> 2026, arXiv:2604.25987.</span>
+</footer>
+
+<script>
+"use strict";
+
+/* ===================================================== caption tracks
+   Inlined because the host does not serve .vtt files. Extracted from the
+   mov_text tracks embedded in the two source MP4s. */
+var VTT_EN = "WEBVTT\n\n00:06.920 --> 00:10.560\nA classical bit takes one of two values: zero or one.\n\n00:11.080 --> 00:12.640\nA qubit has the same two states.\n\n00:13.360 --> 00:17.000\nThey are written in bra-ket notation, and together they are called the computational basis.\n\n00:19.960 --> 00:23.780\nBefore it is measured, however, a qubit can hold both values at the same time.\n\n00:24.060 --> 00:28.240\nNot as two separate things: as one state that carries a weight on each of the two outcomes.\n\n00:30.960 --> 00:33.160\nThose two weights constitute the entire state.\n\n00:33.500 --> 00:36.820\nWhen both are nonzero, the qubit is in a superposition state.\n\n00:43.900 --> 00:45.940\nBut, what is physically a qubit?\n\n00:48.120 --> 00:52.220\nA qubit may be realised in many physical systems with two distinguishable states.\n\n00:54.460 --> 00:57.060\nThe ground and excited states of a cold atom.\n\n00:57.440 --> 01:01.260\nThe two spin orientations of a single electron confined in a quantum dot.\n\n01:01.700 --> 01:04.340\nThe horizontal and vertical polarisation of a photon.\n\n01:06.720 --> 01:10.520\nAll three are described by the same two basis states and the same weighted combination.\n\n01:11.160 --> 01:14.600\nThe remainder of this film therefore concerns the theoretical description of a qubit,\n\n01:14.620 --> 01:15.800\nand not its hardware.\n\n01:22.860 --> 01:25.140\nAlpha and beta are complex numbers.\n\n01:25.660 --> 01:28.900\nEach therefore carries two quantities: a magnitude and a phase.\n\n01:29.700 --> 01:32.920\nThese two complex numbers are the probability amplitudes of the qubit.\n\n01:35.400 --> 01:37.240\nThe magnitudes are not independent.\n\n01:42.620 --> 01:45.260\nSquared, they sum to one, without exception.\n\n01:50.680 --> 01:52.100\nA second constraint applies.\n\n01:52.560 --> 01:56.920\nMultiplying the entire state by a common phase factor changes nothing that can be measured.\n\n02:02.480 --> 02:04.900\nThat phase is therefore not part of the state.\n\n02:14.240 --> 02:15.260\nConsider the count.\n\n02:15.780 --> 02:18.200\nTwo complex numbers amount to four real parameters.\n\n02:21.860 --> 02:23.480\nNormalisation of the magnitudes removes one.\n\n02:23.500 --> 02:26.360\nThe irrelevance of the overall phase removes a second.\n\n02:28.880 --> 02:29.680\nTwo remain.\n\n02:30.280 --> 02:33.500\nAnd two real parameters are precisely what specify a point on a sphere.\n\n02:42.860 --> 02:45.020\nThis is that sphere: the Bloch sphere.\n\n02:45.540 --> 02:47.840\nThe state is an arrow from the centre to the surface,\n\n02:48.360 --> 02:50.300\nzero at the north pole and one at the south.\n\n02:50.620 --> 02:54.080\nThe first angle, theta, is measured downward from the north pole,\n\n02:54.560 --> 02:55.860\nand it fixes the two magnitudes.\n\n02:58.480 --> 03:02.480\nAt the north pole the outcome is certainly zero; at the south pole, certainly one;\n\n03:02.660 --> 03:05.040\non the equator, the two outcomes are equally likely.\n\n03:10.500 --> 03:13.280\nThe second angle, phi, runs around the equator.\n\n03:13.660 --> 03:15.860\nIt is the phase difference between the two amplitudes.\n\n03:16.420 --> 03:19.560\nTheta ranges from zero to pi, and phi from zero to two pi.\n\n03:20.520 --> 03:22.440\nTogether they cover the sphere exactly once.\n\n03:23.180 --> 03:24.840\nThe length of the arrow never changes.\n\n03:25.400 --> 03:26.580\nOnly its direction does.\n\n03:33.700 --> 03:35.000\nNow consider a measurement.\n\n03:35.380 --> 03:38.600\nThe result is either zero or one, and never an intermediate value.\n\n03:39.040 --> 03:40.660\nThe measurement also acts on the qubit.\n\n03:41.280 --> 03:45.100\nImmediately afterwards it is in the state that was returned, and the superposition is gone.\n\n03:47.240 --> 03:51.180\nThe probability of each outcome is the square of the corresponding magnitude.\n\n03:56.560 --> 04:00.520\nPrepare many identical qubits in the same state and measure them one at a time.\n\n04:00.860 --> 04:04.880\nAs their number grows, the observed proportions converge on the predicted probabilities.\n\n04:14.300 --> 04:16.860\nSuppose that the same qubit is measured a second time.\n\n04:17.200 --> 04:18.880\nThe result is the same as the first,\n\n04:19.240 --> 04:22.300\nand it remains the same however often the measurement is repeated.\n\n04:24.960 --> 04:29.380\nThe superposition is gone, and unless the qubit is prepared again in a superposition,\n\n04:29.760 --> 04:33.860\nits state is now the outcome itself, and every further measurement simply returns it.\n\n04:40.920 --> 04:41.820\nTo sum up.\n\n04:42.320 --> 04:46.740\nThe state of a qubit is two complex amplitudes, one for each of the two outcomes.\n\n04:50.540 --> 04:53.580\nNormalisation and the irrelevance of a common phase leave two real parameters:\n\n04:54.080 --> 04:57.160\nthe angles theta and phi, which place a point on the Bloch sphere.\n\n04:59.800 --> 05:04.500\nA measurement returns zero or one, with probabilities given by the squared magnitudes,\n\n05:05.060 --> 05:06.960\nand leaves the qubit in the state it returned.\n";
+
+var VTT_ZH = "WEBVTT\n\n00:03.000 --> 00:07.820\n這個系統是一個具有兩個能階的原子：一個基態與一個激發態。\n\n00:08.300 --> 00:10.057\n這兩個能階就是量子位元。\n\n00:10.057 --> 00:11.960\n基態記為零，激發態記為一。\n\n00:14.540 --> 00:18.700\n它的狀態是兩個能階的組合，每個能階各帶一個複數機率幅。\n\n00:18.700 --> 00:21.338\n這兩個機率幅寫成 c₁ 與 c₂。\n\n00:21.338 --> 00:23.820\n取平方後，它們的大小相加等於一。\n\n00:30.800 --> 00:35.360\n雷射光可以看成一個以角頻率 ω 振盪的電場。\n\n00:35.920 --> 00:39.900\n這個電場在原子中產生一個電偶極，並把兩個能階耦合起來。\n\n00:42.440 --> 00:48.680\n耦合之後，機率幅會從一個能階流向另一個，\n其速率由一個數決定，這個數稱為拉比頻率 Ω。\n\n00:54.240 --> 00:58.700\nΩ 等於電場振幅乘以偶極矩陣元素，再除以 ℏ。\n\n00:59.240 --> 01:02.167\n這個矩陣元素衡量兩個能階耦合的強弱。\n\n01:02.167 --> 01:04.931\n它取決於我們所選為能階的軌域形狀。\n\n01:04.931 --> 01:08.020\n若它為零，任何電場都無法驅動這個躍遷。\n\n01:15.400 --> 01:17.400\n這個耦合由兩個量決定。\n\n01:20.120 --> 01:21.748\n第一個是 Ω。\n\n01:21.748 --> 01:26.400\n第二個是失諧 δ：電場頻率離共振有多遠。\n\n01:29.140 --> 01:34.160\n兩者共同決定一個速率 W，其平方等於 Ω 平方加\n上 δ 平方。\n\n01:44.400 --> 01:48.180\n考慮電場恰好落在共振上，也就是 δ 等於零。\n\n01:48.720 --> 01:52.240\n這裡所說的佔據數，是指在該能階上找到原子的機率。\n\n01:54.820 --> 01:59.347\n上能階的佔據數會從零升到一，再落回零，並且反覆不停。\n\n01:59.347 --> 02:00.740\n這就是拉比振盪。\n\n02:01.200 --> 02:03.700\n它等於 Ω t 除以二的正弦平方。\n\n02:08.840 --> 02:12.240\n因此，脈衝的持續時間決定原子最後停在哪裡。\n\n02:17.440 --> 02:21.320\n離開共振之後，振盪變得更快，而且永遠不完全。\n\n02:21.780 --> 02:24.619\n它的振幅是 Ω 平方除以 W 平方。\n\n02:24.619 --> 02:27.300\n只有恰好共振的電場才能填滿上能階。\n\n02:34.480 --> 02:36.440\n這個狀態可以寫成一個向量 R。\n\n02:37.000 --> 02:39.840\n它沿三個軸的分量分別是 u、v 與 w。\n\n02:40.300 --> 02:42.020\n這個向量的長度恰好等於一。\n\n02:47.560 --> 02:51.380\n在北極，原子處於基態；在南極，則處於激發態。\n\n02:51.920 --> 02:54.420\n在赤道上，兩個能階的機率相等。\n\n02:57.120 --> 03:00.640\n球面上正對的兩點，代表互相正交的狀態。\n\n03:07.720 --> 03:13.040\n這三個數只服從一條方程式：R 的變化率等於 R\n外積另一個向量 W。\n\n03:16.520 --> 03:20.024\nW 沿一個軸帶有 Ω，沿另一個軸帶有 δ。\n\n03:20.024 --> 03:21.860\n它的長度就是速率 W。\n\n03:24.440 --> 03:30.520\n外積與它的兩個引數都垂直，因此 R 既不能變長，\n也不能靠近 W。\n\n03:33.000 --> 03:34.467\n只剩下一種運動。\n\n03:34.467 --> 03:37.400\nR 以速率 W 繞著 W 進動。\n\n03:42.640 --> 03:44.391\nΩ 把轉軸推向赤道。\n\n03:44.391 --> 03:45.967\n失諧把它拉回極點。\n\n03:45.967 --> 03:50.520\n轉軸的長度就是轉動的速率，而持續時間決定轉過的角度。\n\n03:55.960 --> 04:01.460\n在共振時，轉軸落在赤道面上，狀態便沿一個大圓從一\n極掃到另一極。\n\n04:08.600 --> 04:14.980\n一個持續時間為 π 除以 Ω 的共振脈衝，\n會使狀態轉過半圈：這叫 π 脈衝。\n\n04:17.680 --> 04:20.500\n它會交換兩個能階，而且從任何起始狀態都成立。\n\n04:22.960 --> 04:26.060\n在量子計算中，這個操作就是 X 閘。\n\n04:28.740 --> 04:31.499\n一半的持續時間就是 π/2 脈衝。\n\n04:31.499 --> 04:32.960\n它把基態帶到赤道。\n\n04:38.240 --> 04:41.560\n在共振解中，Ω 與 t 只以乘積的形式出現。\n\n04:42.060 --> 04:44.900\n把電場減半、持續時間加倍，執行的是同一個旋轉。\n\n04:52.240 --> 04:53.002\n總結一下。\n\n04:53.002 --> 04:57.420\n兩個能階，每個各有一個複數機率幅，以及一個長度為一的狀態。\n\n04:57.800 --> 05:04.740\n近共振的電場以拉比頻率把它們耦合起來，\n狀態則繞著由 Ω 與失諧共同決定的轉軸進動。\n\n05:07.520 --> 05:13.720\n能使兩個狀態的機率幅反轉的脈衝稱為 π 脈衝，\n在量子計算中，它就是 X 閘。\n";
+
+/* ===================================================== palette from CSS */
+var PAL = {};
+function readPalette(){
+  var cs = getComputedStyle(document.documentElement);
+  ["ink","ink-dim","line","grid","solid","frozen","blush","mint","teal",
+   "c-atom","c-ryd","c-trap","c-420","c-1015","c-vec","c-axis","c-link",
+   "sph-bg","sph-glow","sph-grid","sph-ring","sph-limb","sph-axis"].forEach(function(k){
+    PAL[k] = (cs.getPropertyValue("--"+k) || "").trim() || "#888";
+  });
+}
+readPalette();
+
+var REDUCED = window.matchMedia &&
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* ===================================================== formatting */
+function sci(x,d){
+  d = d===undefined ? 3 : d;
+  if (!isFinite(x)) return "—";
+  if (x === 0) return "0";
+  var a = Math.abs(x);
+  if (a >= 1e5 || a < 1e-3){
+    var e = Math.floor(Math.log10(a));
+    return (x/Math.pow(10,e)).toFixed(d-1) + "e" + (e<0?"":"+") + e;
+  }
+  if (a >= 100) return x.toFixed(1);
+  if (a >= 10)  return x.toFixed(2);
+  if (a >= 1)   return x.toFixed(3);
+  return x.toFixed(4);
+}
+function fx(x,n){ return isFinite(x) ? x.toFixed(n) : "—"; }
+function set(id,v){ var e = document.getElementById(id); if (e) e.innerHTML = v; }
+
+/* ===================================================== canvas helper */
+function fit(cv){
+  var r = cv.getBoundingClientRect();
+  if (r.width < 4 || r.height < 4) return null;
+  var dpr = Math.min(2, window.devicePixelRatio || 1);
+  var W = Math.round(r.width*dpr), H = Math.round(r.height*dpr);
+  if (cv.width !== W || cv.height !== H){ cv.width = W; cv.height = H; }
+  var ctx = cv.getContext("2d");
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,r.width,r.height);
+  return {ctx:ctx, w:r.width, h:r.height};
+}
+
+/* ===================================================== generic controls */
+function buildControls(host, spec, store, onChange, extraHTML){
+  host.innerHTML = "";
+  spec.forEach(function(G){
+    var d = document.createElement("div");
+    d.className = "cgroup";
+    var html = "<h3>"+G.g+"</h3>" + (G.n ? "<p>"+G.n+"</p>" : "");
+    G.items.forEach(function(it){
+      var id = host.id+"_"+it.k;
+      html += '<div class="ctl">'
+        + '<label for="'+id+'">'+it.l+(it.u?' <i>'+it.u+'</i>':'')+'</label>'
+        + '<input type="number" id="'+id+'" data-k="'+it.k+'" value="'+store[it.k]
+        + '" step="'+it.st+'" min="'+it.min+'" max="'+it.max+'">'
+        + (it.slider ? '<input type="range" id="'+id+'_s" data-k="'+it.k
+            + '" min="'+it.min+'" max="'+it.max+'" step="'+it.st+'" value="'+store[it.k]
+            + '" aria-label="'+it.l.replace(/<[^>]*>/g,"")+'">' : "")
+        + '</div>';
+    });
+    d.innerHTML = html;
+    host.appendChild(d);
+  });
+  if (extraHTML){
+    var e = document.createElement("div");
+    e.className = "cgroup";
+    e.innerHTML = extraHTML;
+    host.appendChild(e);
+  }
+  host.addEventListener("input", function(ev){
+    var k = ev.target.dataset.k; if (!k) return;
+    var v = parseFloat(ev.target.value); if (!isFinite(v)) return;
+    store[k] = v;
+    var id = host.id+"_"+k;
+    var a = document.getElementById(id), b = document.getElementById(id+"_s");
+    if (a && a !== ev.target) a.value = v;
+    if (b && b !== ev.target) b.value = v;
+    onChange();
+  });
+}
+function syncControls(host, store){
+  var els = host.querySelectorAll("input[data-k]");
+  for (var i=0;i<els.length;i++){
+    var v = store[els[i].dataset.k];
+    if (v !== undefined && parseFloat(els[i].value) !== v) els[i].value = v;
+  }
+}
+
+/* ===================================================================== */
+/*  03 -- DRIVING ONE ATOM                                               */
+/* ===================================================================== */
+var S1 = {
+  w1:40, w2:560, P:150, Delta:93, Gamma:5.75, Isat:4.4876, eta:0.577,
+  delta:0, phi:0, t:0.05026, ar:1, ai:0, br:0, bi:0
+};
+
+function physics1(o){
+  var w1=o.w1*1e-6, w2=o.w2*1e-6, P=o.P*1e-3;
+  var Delta = 2*Math.PI*o.Delta*1e9;
+  var Gamma = 2*Math.PI*o.Gamma*1e6;
+  var Isat  = o.Isat*1e-3/1e-4;
+  var Ipk   = 2*P/(Math.PI*w1*w2);
+  var irel  = Ipk/Isat;
+  var Obare = Gamma*Math.sqrt(Ipk/(2*Isat));
+  var Oeff  = (o.eta*Obare*Obare/(2*Delta))/(2*Math.PI*1e6);   // MHz, linear
+  // exact two-level scattering rate, photons per second (Gamma is already rad/s)
+  var Rsc   = (Gamma/2)*irel/(1 + 4*Math.pow(Delta/Gamma,2) + irel);
+  var tpi   = Oeff>0 ? 1/(2*Oeff) : Infinity;                  // us
+  return {irel:irel, Obare:Obare/(2*Math.PI*1e6), Oeff:Oeff, Rsc:Rsc, tpi:tpi};
+}
+
+/* U(t) on (alpha,beta). Frequencies MHz, t in us. */
+function evolve1(Oeff, delta, phiDeg, t, a, b){
+  var Og = Math.sqrt(Oeff*Oeff + delta*delta);
+  if (Og === 0) return {ar:a[0], ai:a[1], br:b[0], bi:b[1]};
+  var th = 2*Math.PI*Og*t;
+  var pr = phiDeg*Math.PI/180;
+  var nx = -Oeff*Math.cos(pr)/Og, ny = -Oeff*Math.sin(pr)/Og, nz = delta/Og;
+  var c = Math.cos(th/2), s = Math.sin(th/2);
+  // U = c*I - i s (nx sx + ny sy + nz sz)
+  var U00r=c, U00i=-s*nz, U01r=-s*ny, U01i=-s*nx;
+  var U10r= s*ny, U10i=-s*nx, U11r=c, U11i= s*nz;
+  return {
+    ar: U00r*a[0]-U00i*a[1] + U01r*b[0]-U01i*b[1],
+    ai: U00r*a[1]+U00i*a[0] + U01r*b[1]+U01i*b[0],
+    br: U10r*a[0]-U10i*a[1] + U11r*b[0]-U11i*b[1],
+    bi: U10r*a[1]+U10i*a[0] + U11r*b[1]+U11i*b[0]
+  };
+}
+function blochOf(ar,ai,br,bi){
+  var p0 = ar*ar+ai*ai, p1 = br*br+bi*bi;
+  return {p0:p0, p1:p1, x:2*(ar*br+ai*bi), y:2*(ar*bi-ai*br), z:p0-p1};
+}
+function norm1(){
+  var n = Math.sqrt(S1.ar*S1.ar + S1.ai*S1.ai + S1.br*S1.br + S1.bi*S1.bi);
+  if (n > 1e-12) return [[S1.ar/n,S1.ai/n],[S1.br/n,S1.bi/n]];
+  return [[1,0],[0,0]];
+}
+
+var AZ = 0.62, EL = 0.36, LAST1 = null;
+function proj(p){
+  var ca=Math.cos(AZ), sa=Math.sin(AZ), ce=Math.cos(EL), se=Math.sin(EL);
+  var x = p[0]*ca - p[1]*sa, y = p[0]*sa + p[1]*ca, z = p[2];
+  return [x, y*ce - z*se, y*se + z*ce];   // [screen x, depth, screen up]
+}
+function drawBloch(st){
+  var c = fit(document.getElementById("bloch")); if (!c) return;
+  var ctx=c.ctx, w=c.w, h=c.h;
+  var R = Math.min(w,h)*0.37, cx = w/2, cy = h/2;
+  function SX(p){ return cx + proj(p)[0]*R; }
+  function SY(p){ return cy - proj(p)[2]*R; }
+  function DP(p){ return proj(p)[1]; }
+
+  function poly(pts, col, lw, dash){
+    ctx.lineWidth = lw; ctx.setLineDash(dash||[]);
+    for (var i=0;i<pts.length-1;i++){
+      var d = (DP(pts[i]) + DP(pts[i+1]))/2;
+      ctx.globalAlpha = d>0 ? 1 : 0.34;   // behind the ball, not invisible
+      ctx.strokeStyle = col;
+      ctx.beginPath();
+      ctx.moveTo(SX(pts[i]),SY(pts[i])); ctx.lineTo(SX(pts[i+1]),SY(pts[i+1]));
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1; ctx.setLineDash([]);
+  }
+  function ring(axis,N){
+    var o=[];
+    for (var i=0;i<=N;i++){
+      var a=i/N*6.2832;
+      o.push(axis==="z" ? [Math.cos(a),Math.sin(a),0]
+           : axis==="x" ? [0,Math.cos(a),Math.sin(a)]
+                        : [Math.cos(a),0,Math.sin(a)]);
+    }
+    return o;
+  }
+
+  // the sphere's own field, so the wireframe has something to read against
+  ctx.fillStyle = PAL["sph-bg"];
+  ctx.fillRect(0,0,w,h);
+  var halo = ctx.createRadialGradient(cx,cy,R*0.2, cx,cy,R*1.55);
+  halo.addColorStop(0, PAL["sph-glow"]);
+  halo.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = halo; ctx.fillRect(0,0,w,h);
+
+  // the ball itself, lit from the upper left so it reads as a volume
+  var ball = ctx.createRadialGradient(cx-R*0.34, cy-R*0.40, R*0.06, cx, cy, R*1.04);
+  ball.addColorStop(0,   "rgba(150,196,210,.34)");
+  ball.addColorStop(0.55,"rgba(62,130,142,.17)");
+  ball.addColorStop(1,   "rgba(10,14,26,.30)");
+  ctx.fillStyle = ball;
+  ctx.beginPath(); ctx.arc(cx,cy,R,0,6.2832); ctx.fill();
+
+  for (var k=-2;k<=2;k++){
+    if (k===0) continue;
+    var z = k*0.4, rr = Math.sqrt(Math.max(0,1-z*z)), o=[];
+    for (var i=0;i<=72;i++){ var a=i/72*6.2832; o.push([rr*Math.cos(a), rr*Math.sin(a), z]); }
+    poly(o, PAL["sph-grid"], 1);
+  }
+  poly(ring("x",72), PAL["sph-grid"], 1.1);
+  poly(ring("y",72), PAL["sph-grid"], 1.1);
+  poly(ring("z",96), PAL["sph-ring"], 1.6);
+
+  // the limb: a crisp outline is what makes it read as a sphere at a glance
+  ctx.strokeStyle = PAL["sph-limb"]; ctx.lineWidth = 1.4;
+  ctx.beginPath(); ctx.arc(cx,cy,R,0,6.2832); ctx.stroke();
+
+  poly([[-1.24,0,0],[1.24,0,0]], PAL["sph-axis"], 1, [4,3]);
+  poly([[0,-1.24,0],[0,1.24,0]], PAL["sph-axis"], 1, [4,3]);
+  poly([[0,0,-1.24],[0,0,1.24]], PAL["sph-axis"], 1, [4,3]);
+
+  ctx.textAlign="center"; ctx.textBaseline="middle";
+  ctx.font = '400 13px "Space Mono", monospace';
+  ctx.fillStyle = PAL["frozen"];
+  ctx.fillText("|0⟩", SX([0,0,1.4]), SY([0,0,1.4]));
+  ctx.fillText("|1⟩", SX([0,0,-1.4]), SY([0,0,-1.4]));
+  ctx.font = '400 10px "Space Mono", monospace';
+  ctx.fillStyle = PAL["ink-dim"];
+  ctx.fillText("x", SX([1.35,0,0]), SY([1.35,0,0]));
+  ctx.fillText("y", SX([0,1.35,0]), SY([0,1.35,0]));
+
+  if (st.nhat){
+    var n = st.nhat;
+    poly([[-n[0]*1.1,-n[1]*1.1,-n[2]*1.1],[n[0]*1.1,n[1]*1.1,n[2]*1.1]], PAL["c-axis"], 1.8, [6,4]);
+    ctx.fillStyle = PAL["c-axis"];
+    ctx.font = '700 10px "Space Mono", monospace';
+    ctx.fillText("n̂", SX([n[0]*1.26,n[1]*1.26,n[2]*1.26]), SY([n[0]*1.26,n[1]*1.26,n[2]*1.26]));
+  }
+  if (st.traj && st.traj.length > 1) poly(st.traj, PAL["c-atom"], 2);
+
+  // the state vector sits on top of a now-brighter ball, so give it a glow
+  var v = [st.x, st.y, st.z];
+  ctx.save();
+  ctx.shadowColor = "rgba(246,182,183,.85)"; ctx.shadowBlur = 10;
+  ctx.strokeStyle = PAL["c-vec"]; ctx.lineWidth = 3; ctx.lineCap = "round";
+  ctx.beginPath(); ctx.moveTo(SX([0,0,0]),SY([0,0,0])); ctx.lineTo(SX(v),SY(v)); ctx.stroke();
+  ctx.fillStyle = PAL["c-vec"];
+  ctx.beginPath(); ctx.arc(SX(v),SY(v),4.8,0,6.2832); ctx.fill();
+  ctx.restore();
+  ctx.fillStyle = PAL["c-vec"];
+  ctx.beginPath(); ctx.arc(SX(v),SY(v),4.8,0,6.2832); ctx.fill();
+  ctx.strokeStyle = PAL["sph-bg"]; ctx.lineWidth = 1.5; ctx.stroke();
+}
+
+var C1SPEC = [
+  {g:"Laser beam",
+   items:[
+     {k:"P",  l:"Power P",       u:"mW",     min:5, max:500,  st:1, slider:true},
+     {k:"w1", l:"Waist w₁", u:"µm", min:5, max:200,  st:1, slider:true},
+     {k:"w2", l:"Waist w₂", u:"µm", min:5, max:1200, st:5, slider:true}
+   ]},
+  {g:"Pulse",
+   items:[
+     {k:"delta", l:"Two-photon δ",  u:"MHz",     min:-10, max:10, st:0.01, slider:true},
+     {k:"phi",   l:"Drive phase φ", u:"deg",     min:0, max:360, st:1, slider:true},
+     {k:"t",     l:"Duration t",         u:"µs", min:0, max:0.6, st:0.0001, slider:true}
+   ]},
+  {g:"Detuning",
+   items:[
+     {k:"Delta", l:"Laser detuning Δ", u:"GHz", min:1, max:400, st:1, slider:true},
+     {k:"eta",   l:"Modulation η",     u:"",    min:0, max:1,   st:0.001, slider:true}
+   ]},
+  {g:"The atom — ⁸⁷Rb",
+   items:[
+     {k:"Gamma", l:"Linewidth Γ/2π", u:"MHz",        min:0.1, max:20, st:0.01},
+     {k:"Isat",  l:"Saturation I_sat",         u:"mW/cm²", min:0.1, max:50, st:0.0001}
+   ]}
+];
+var S1PRE = {
+  "|0⟩":[1,0,0,0], "|1⟩":[0,0,1,0],
+  "|+⟩":[Math.SQRT1_2,0,Math.SQRT1_2,0],
+  "|i⟩":[Math.SQRT1_2,0,0,Math.SQRT1_2]
+};
+
+function render1(){
+  var ph = physics1(S1);
+  var ab = norm1(), a = ab[0], b = ab[1];
+
+  var traj = [], NT = 150;
+  for (var i=0;i<=NT;i++){
+    var s = evolve1(ph.Oeff, S1.delta, S1.phi, S1.t*i/NT, a, b);
+    var v = blochOf(s.ar,s.ai,s.br,s.bi);
+    traj.push([v.x,v.y,v.z]);
+  }
+  var fin = evolve1(ph.Oeff, S1.delta, S1.phi, S1.t, a, b);
+  var bv  = blochOf(fin.ar,fin.ai,fin.br,fin.bi);
+
+  var nhat = null;
+  var Og = Math.sqrt(ph.Oeff*ph.Oeff + S1.delta*S1.delta);
+  if (Og > 0){
+    var pr = S1.phi*Math.PI/180;
+    nhat = [-ph.Oeff*Math.cos(pr)/Og, -ph.Oeff*Math.sin(pr)/Og, S1.delta/Og];
+  }
+  LAST1 = {ph:ph, bv:bv, fin:fin, traj:traj, nhat:nhat};
+  drawBloch({x:bv.x, y:bv.y, z:bv.z, traj:traj, nhat:nhat});
+
+  set("r_irel", sci(ph.irel,4));
+  set("r_obare", fx(ph.Obare,1)+" <small>MHz</small>");
+  set("r_oeff",  fx(ph.Oeff,4)+" <small>MHz</small>");
+  set("r_rsc",   sci(ph.Rsc,4)+" <small>photons/s</small>");
+  set("r_tpi",   isFinite(ph.tpi) ? fx(ph.tpi*1000,1)+" <small>ns</small>" : "∞");
+  var th = 2*Math.PI*Og*S1.t;
+  set("r_theta", fx(th*180/Math.PI,1)+"° <small>= "+fx(th/Math.PI,3)+"π</small>");
+  set("r_errp",  sci(ph.Rsc*S1.t*1e-6,3));
+
+  function cs(re,im){
+    return "("+(re>=0?"+":"")+fx(re,4)+(im>=0?"+":"")+fx(im,4)+"i)";
+  }
+  set("r_ket", cs(fin.ar,fin.ai)+"|0⟩<br>"+cs(fin.br,fin.bi)+"|1⟩");
+  set("r_p0", fx(bv.p0*100,2)+" <small>%</small>");
+  set("r_p1", fx(bv.p1*100,2)+" <small>%</small>");
+  set("r_bloch", "("+fx(bv.x,3)+", "+fx(bv.y,3)+", "+fx(bv.z,3)+")");
+}
+
+/* ===================================================================== */
+/*  04 -- THE CZ GATE                                                    */
+/* ===================================================================== */
+var MACH = { OM_2PI:17.0e6, R_GATE:1.73, R_IDLE:11.0,
+             T_MOVE_US:195.0, T_DARK_NS:400.0, T_REARM_NS:100.0 };
+/* Working pulse coefficients: the ones that actually close the gate. */
+var CZ = { D0:0.335, K:-1.405, OT:15.68, LAM:1.1195,
+           AMIN:-0.1565, AMAX:0.9622, ALPHA:0.3, WOM:-0.2962 };
+var S2 = { a1r:Math.SQRT1_2, a1i:0, b1r:Math.SQRT1_2, b1i:0,
+           a2r:Math.SQRT1_2, a2i:0, b2r:Math.SQRT1_2, b2i:0 };
+
+function envFactory(OT){
+  var c = Math.pow(Math.cosh(CZ.WOM*OT/2), CZ.ALPHA);
+  var om0 = (CZ.AMIN*c - CZ.AMAX)/(c-1);
+  var amp = (CZ.AMAX - CZ.AMIN)*c/(c-1);
+  return function(u){ return om0 + amp/Math.pow(Math.cosh(CZ.WOM*u), CZ.ALPHA); };
+}
+function phaseOf(u){ return CZ.D0*u + (CZ.K/CZ.LAM)*Math.tanh(CZ.LAM*u); }
+
+function deriv(y, h, ec, es, o){
+  o[0] =  h*(ec*y[3] - es*y[2]);
+  o[1] = -h*(ec*y[2] + es*y[3]);
+  o[2] =  h*(ec*y[1] + es*y[0]);
+  o[3] = -h*(ec*y[0] - es*y[1]);
+}
+var R2 = Math.SQRT2;
+
+/* RK4 over both sectors: {|1>,|r>} at Omega, {|11>,|W>} at sqrt(2)*Omega. */
+function integrate(nstep){
+  var OT = CZ.OT, env = envFactory(OT), dt = OT/nstep;
+  var y1 = [1,0,0,0], y2 = [1,0,0,0];
+  var k1=[0,0,0,0],k2=[0,0,0,0],k3=[0,0,0,0],k4=[0,0,0,0];
+  var j1=[0,0,0,0],j2=[0,0,0,0],j3=[0,0,0,0],j4=[0,0,0,0];
+  var ta=[0,0,0,0], tb=[0,0,0,0];
+  var tr = {Ar:[],Ai:[],Br:[],Bi:[],rA:[],rB:[],om:[]};
+  function push(u){
+    tr.Ar.push(y1[0]); tr.Ai.push(y1[1]);
+    tr.Br.push(y2[0]); tr.Bi.push(y2[1]);
+    tr.rA.push(y1[2]*y1[2] + y1[3]*y1[3]);
+    tr.rB.push(y2[2]*y2[2] + y2[3]*y2[3]);
+    tr.om.push(env(u));
+  }
+  function step(y, o1,o2,o3,o4, u0,uh,u1, g){
+    var i;
+    var ph = phaseOf(u0), h = g*env(u0);
+    deriv(y, h, Math.cos(ph), Math.sin(ph), o1);
+    for (i=0;i<4;i++) ta[i] = y[i] + dt/2*o1[i];
+    ph = phaseOf(uh); h = g*env(uh);
+    var ec = Math.cos(ph), es = Math.sin(ph);
+    deriv(ta, h, ec, es, o2);
+    for (i=0;i<4;i++) tb[i] = y[i] + dt/2*o2[i];
+    deriv(tb, h, ec, es, o3);
+    for (i=0;i<4;i++) ta[i] = y[i] + dt*o3[i];
+    ph = phaseOf(u1); h = g*env(u1);
+    deriv(ta, h, Math.cos(ph), Math.sin(ph), o4);
+    for (i=0;i<4;i++) y[i] += dt/6*(o1[i] + 2*o2[i] + 2*o3[i] + o4[i]);
+  }
+  push(-OT/2);
+  for (var n=0;n<nstep;n++){
+    var u0 = -OT/2 + n*dt, uh = u0 + dt/2, u1 = u0 + dt;
+    step(y1, k1,k2,k3,k4, u0,uh,u1, 0.5);
+    step(y2, j1,j2,j3,j4, u0,uh,u1, R2*0.5);
+    push(u1);
+  }
+  var aAbs = Math.sqrt(y1[0]*y1[0]+y1[1]*y1[1]);
+  var bAbs = Math.sqrt(y2[0]*y2[0]+y2[1]*y2[1]);
+  var phi1 = Math.atan2(y1[1], y1[0]), phi11 = Math.atan2(y2[1], y2[0]);
+  var dphi = Math.atan2(Math.sin(phi11-2*phi1), Math.cos(phi11-2*phi1));
+  var trr = 1 + 2*aAbs - bAbs*Math.cos(dphi), tri = -bAbs*Math.sin(dphi);
+  return {aAbs:aAbs, bAbs:bAbs, phi1:phi1, phi11:phi11, dphi:dphi,
+          F:(trr*trr + tri*tri)/16, trace:tr,
+          Ar:y1[0], Ai:y1[1], Br:y2[0], Bi:y2[1]};
+}
+
+function cmul(p,q){ return [p[0]*q[0]-p[1]*q[1], p[0]*q[1]+p[1]*q[0]]; }
+function concurrence(c){
+  var A = cmul(c[0],c[3]), B = cmul(c[1],c[2]);
+  return Math.min(1, 2*Math.sqrt(Math.pow(A[0]-B[0],2) + Math.pow(A[1]-B[1],2)));
+}
+function inputState(){
+  var n1 = Math.sqrt(S2.a1r*S2.a1r+S2.a1i*S2.a1i+S2.b1r*S2.b1r+S2.b1i*S2.b1i) || 1;
+  var n2 = Math.sqrt(S2.a2r*S2.a2r+S2.a2i*S2.a2i+S2.b2r*S2.b2r+S2.b2i*S2.b2i) || 1;
+  var A=[S2.a1r/n1,S2.a1i/n1], B=[S2.b1r/n1,S2.b1i/n1];
+  var C=[S2.a2r/n2,S2.a2i/n2], D=[S2.b2r/n2,S2.b2i/n2];
+  return [cmul(A,C), cmul(A,D), cmul(B,C), cmul(B,D)];
+}
+
+var STAGES = [
+  ["Trapped, far apart", 25], ["Move together: 11 → 1.73 µm", 45],
+  ["Tweezers off", 15], ["Fire the pulse", 70],
+  ["Tweezers back on", 15], ["Software phase fix", 25],
+  ["Move apart", 45], ["Still entangled", 30]
+];
+/* what is happening, and why, at each step of the sequence */
+var STAGE_TEXT = [
+  "Two atoms sit 11 &micro;m apart, each held in its own optical tweezer. At this distance they "
+  + "ignore each other completely — nothing one does affects the other.",
+
+  "The tweezers carry the pair together to 1.73 &micro;m. <b>This is what selects them.</b> The gate "
+  + "beams that follow are 30–35 &micro;m wide and flood the whole zone, so it is proximity, not "
+  + "aim, that decides which atoms take part.",
+
+  "The traps switch off for a few hundred nanoseconds. A tweezer left on would shift the Rydberg "
+  + "level and corrupt the phase the gate is trying to write.",
+
+  "420 nm and 1015 nm fire together, driving each atom toward the Rydberg state. "
+  + "<b>|01&rangle; is driven at &Omega;, but |11&rangle; is driven at &radic;2&thinsp;&Omega;</b> — the "
+  + "blockade forces the two atoms to share a single excitation, so they respond as one. Both "
+  + "return to the ground state, but with different phases, and that difference is the gate.",
+
+  "The traps come back on within 100 ns, before the atoms have drifted far enough to be lost.",
+
+  "Each atom also picked up a single-atom phase &phi;&#8321; that is no part of a CZ. It is removed "
+  + "by redefining the phase reference in software — <b>no laser fires, no time passes, no error "
+  + "is added</b>.",
+
+  "The pair is carried back out to 11 &micro;m. Transport is unitary on the internal state: moving "
+  + "the atoms does not touch the amplitudes they now hold.",
+
+  "Same separation as the start, but the two atoms are no longer independent. "
+  + "<b>|11&rangle; carries a minus sign</b> that no operation on a single atom can remove — that is "
+  + "the entanglement."
+];
+var BOUNDS = (function(){ var n=0; return STAGES.map(function(s){ var b=[n,n+s[1],s[0]]; n+=s[1]; return b; }); })();
+var TOTAL = BOUNDS[BOUNDS.length-1][1];
+function T_PULSE_NS(){ return CZ.OT/(2*Math.PI*MACH.OM_2PI)*1e9; }
+
+function stageOf(f){
+  for (var i=0;i<BOUNDS.length;i++){
+    if (f >= BOUNDS[i][0] && f < BOUNDS[i][1])
+      return [i, (f-BOUNDS[i][0])/Math.max(1, BOUNDS[i][1]-BOUNDS[i][0]-1), BOUNDS[i][2]];
+  }
+  var L = BOUNDS.length-1;
+  return [L, 1, BOUNDS[L][2]];
+}
+function sepAt(i,p){
+  if (i<=0) return MACH.R_IDLE;
+  if (i===1){ var s=p*p*(3-2*p); return MACH.R_IDLE + (MACH.R_GATE-MACH.R_IDLE)*s; }
+  if (i<=5) return MACH.R_GATE;
+  if (i===6){ var s2=p*p*(3-2*p); return MACH.R_GATE + (MACH.R_IDLE-MACH.R_GATE)*s2; }
+  return MACH.R_IDLE;
+}
+function clockAt(i,p){
+  var TP = T_PULSE_NS(), t = 0;
+  if (i>=1) t += MACH.T_MOVE_US*(i===1?p:1);
+  if (i>=2) t += (MACH.T_DARK_NS-TP)/2/1000*(i===2?p:1);
+  if (i>=3) t += TP/1000*(i===3?p:1);
+  if (i>=4) t += MACH.T_REARM_NS/1000*(i===4?p:1);
+  if (i>=6) t += MACH.T_MOVE_US*(i===6?p:1);
+  return t;
+}
+function stateAt(i, p, R){
+  var cin = inputState(), one = [1,0];
+  if (i < 3) return {c:cin, ryd:0};
+  if (i === 3){
+    var N = R.trace.Ar.length, j = Math.min(N-1, Math.round(p*(N-1)));
+    var A = [R.trace.Ar[j], R.trace.Ai[j]], B = [R.trace.Br[j], R.trace.Bi[j]];
+    var c = [cmul(cin[0],one), cmul(cin[1],A), cmul(cin[2],A), cmul(cin[3],B)];
+    var tot = 0;
+    for (var k=0;k<4;k++) tot += c[k][0]*c[k][0] + c[k][1]*c[k][1];
+    return {c:c, ryd:Math.max(0, 1-tot)};
+  }
+  var Af = [R.Ar,R.Ai], Bf = [R.Br,R.Bi];
+  if (i === 4) return {c:[cmul(cin[0],one), cmul(cin[1],Af), cmul(cin[2],Af), cmul(cin[3],Bf)], ryd:0};
+  function e(t){ return [Math.cos(t), Math.sin(t)]; }
+  if (i === 5){
+    var d = [one, e(R.phi1 - p*R.phi1), e(R.phi1 - p*R.phi1), e(R.phi11 - 2*p*R.phi1)];
+    return {c: cin.map(function(q,k){ return cmul(q, d[k]); }), ryd:0};
+  }
+  var corr = [one, one, one, e(R.phi11 - 2*R.phi1)];
+  return {c: cin.map(function(q,k){ return cmul(q, corr[k]); }), ryd:0};
+}
+
+function drawScene(f, R){
+  var c = fit(document.getElementById("scene")); if (!c) return;
+  var ctx=c.ctx, w=c.w, h=c.h;
+  var so = stageOf(f), i = so[0], p = so[1], nm = so[2];
+  var sep = sepAt(i,p), st = stateAt(i,p,R);
+  var trapsOn = !(i===2 || i===3 || (i===4 && p<=0.5));
+  var lit = (i===3);
+
+  ctx.fillStyle = PAL["solid"]; ctx.fillRect(0,0,w,h);
+  var cy = h*0.5, S = w/16;
+  function WX(x){ return w/2 + x*S; }
+
+  if (lit){
+    var N = R.trace.om.length, j = Math.min(N-1, Math.round(p*(N-1)));
+    var amp = Math.max(0, Math.min(1, Math.abs(R.trace.om[j])/CZ.AMAX));
+    [[h*0.40, PAL["c-420"], 0.34],[h*0.27, PAL["c-1015"], 0.28]].forEach(function(B){
+      ctx.globalAlpha = B[2]*amp;
+      ctx.fillStyle = B[1];
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(w*0.02, cy-B[0], w*0.96, 2*B[0], 6);
+      else ctx.rect(w*0.02, cy-B[0], w*0.96, 2*B[0]);
+      ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+    ctx.font = '400 11px "Space Mono", monospace';
+    ctx.fillStyle = PAL["frozen"]; ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+    ctx.fillText("420 nm + 1015 nm firing", w/2, 18);
+  }
+
+  var xs = [-sep/2*0.62, sep/2*0.62];
+  xs.forEach(function(xw,k){
+    var x = WX(xw);
+    if (trapsOn){
+      ctx.strokeStyle = PAL["c-trap"]; ctx.setLineDash([3,3]); ctx.lineWidth = 1.2;
+      ctx.globalAlpha = 0.8;
+      ctx.beginPath(); ctx.arc(x,cy,S*0.95,0,6.2832); ctx.stroke();
+      ctx.globalAlpha = 0.08; ctx.fillStyle = PAL["c-trap"]; ctx.fill();
+      ctx.globalAlpha = 1; ctx.setLineDash([]);
+    }
+    if (st.ryd > 1e-4){
+      ctx.fillStyle = PAL["c-ryd"];
+      ctx.globalAlpha = 0.55*Math.min(1, st.ryd*1.6);
+      ctx.beginPath(); ctx.arc(x,cy,S*(0.34+0.42*st.ryd),0,6.2832); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+    ctx.fillStyle = PAL["c-atom"];
+    ctx.beginPath(); ctx.arc(x,cy,S*0.30,0,6.2832); ctx.fill();
+    ctx.strokeStyle = PAL["solid"]; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = PAL["ink-dim"]; ctx.textAlign = "center";
+    ctx.font = '400 12px "Space Mono", monospace';
+    ctx.fillText(k===0?"A":"B", x, cy + S*0.95 + 16);
+  });
+
+  if (i >= 6 && concurrence(st.c) > 1e-6){
+    ctx.strokeStyle = PAL["c-link"]; ctx.lineWidth = 2; ctx.setLineDash([6,5]);
+    ctx.beginPath(); ctx.moveTo(WX(xs[0]),cy); ctx.lineTo(WX(xs[1]),cy); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  var y = cy - S*0.95 - 15;
+  ctx.strokeStyle = PAL["ink-dim"]; ctx.lineWidth = 1.1;
+  ctx.beginPath();
+  ctx.moveTo(WX(xs[0]),y); ctx.lineTo(WX(xs[1]),y);
+  ctx.moveTo(WX(xs[0]),y-4); ctx.lineTo(WX(xs[0]),y+4);
+  ctx.moveTo(WX(xs[1]),y-4); ctx.lineTo(WX(xs[1]),y+4);
+  ctx.stroke();
+  ctx.font = '400 11px "Space Mono", monospace';
+  ctx.fillStyle = PAL["frozen"]; ctx.textAlign = "center";
+  ctx.fillText(fx(sep,2)+" µm", w/2, y-8);
+
+  ctx.textAlign = "left"; ctx.font = '400 10px "Space Mono", monospace';
+  ctx.fillStyle = trapsOn ? PAL["c-trap"] : PAL["ink-dim"];
+  ctx.fillText("traps " + (trapsOn ? "ON" : "OFF"), 10, h-9);
+  ctx.textAlign = "right"; ctx.fillStyle = PAL["ink-dim"];
+  ctx.fillText(nm, w-10, h-9);
+}
+
+var C2SPEC = [
+  {g:"Atom A", n:"|a&rangle; = &alpha;&#8321;|0&rangle; + &beta;&#8321;|1&rangle;, normalised for you.",
+   items:[
+     {k:"a1r", l:"Re α₁", u:"", min:-1, max:1, st:0.001},
+     {k:"a1i", l:"Im α₁", u:"", min:-1, max:1, st:0.001},
+     {k:"b1r", l:"Re β₁", u:"", min:-1, max:1, st:0.001},
+     {k:"b1i", l:"Im β₁", u:"", min:-1, max:1, st:0.001}
+   ]},
+  {g:"Atom B", n:"|b&rangle; = &alpha;&#8322;|0&rangle; + &beta;&#8322;|1&rangle;.",
+   items:[
+     {k:"a2r", l:"Re α₂", u:"", min:-1, max:1, st:0.001},
+     {k:"a2i", l:"Im α₂", u:"", min:-1, max:1, st:0.001},
+     {k:"b2r", l:"Re β₂", u:"", min:-1, max:1, st:0.001},
+     {k:"b2i", l:"Im β₂", u:"", min:-1, max:1, st:0.001}
+   ]}
+];
+var S2PRE = {
+  "|+⟩|+⟩":[Math.SQRT1_2,0,Math.SQRT1_2,0,Math.SQRT1_2,0,Math.SQRT1_2,0],
+  "|1⟩|1⟩":[0,0,1,0,0,0,1,0],
+  "|0⟩|+⟩":[1,0,0,0,Math.SQRT1_2,0,Math.SQRT1_2,0],
+  "|0⟩|0⟩":[1,0,0,0,1,0,0,0]
+};
+
+var RES2 = null;
+function render2(){
+  if (!RES2) RES2 = integrate(1600);
+  var R = RES2;
+  var f = parseInt(document.getElementById("scrub").value, 10);
+  var so = stageOf(f), i = so[0], p = so[1];
+  var st = stateAt(i,p,R);
+  var cin = inputState(), cout = stateAt(7,1,R).c;
+  var labs = ["|00⟩","|01⟩","|10⟩","|11⟩"];
+
+  drawScene(f, R);
+
+  var sh = document.getElementById("stages");
+  if (sh.children.length !== STAGES.length){
+    sh.innerHTML = STAGES.map(function(s,k){
+      return '<button class="stg" data-i="'+k+'">'+(k+1)+'. '+s[0]+'</button>';
+    }).join("");
+  }
+  for (var k=0;k<sh.children.length;k++) sh.children[k].classList.toggle("on", k===i);
+
+  set("stageNote", '<span class="sn">Step ' + (i+1) + ' of ' + STAGES.length + ' &middot; '
+    + STAGES[i][0] + '</span>' + STAGE_TEXT[i]);
+
+  var ah = document.getElementById("amps");
+  if (ah.children.length !== 4){
+    ah.innerHTML = labs.map(function(l){
+      return '<div class="amp"><div class="val"></div><div class="bar"></div><div class="lab">'+l+'</div></div>';
+    }).join("");
+  }
+  st.c.forEach(function(q,n){
+    var mag = Math.sqrt(q[0]*q[0]+q[1]*q[1]);
+    var ang = Math.atan2(q[1],q[0]);
+    var col = Math.abs(ang) < Math.PI/2 ? PAL["c-atom"] : PAL["c-1015"];
+    var el = ah.children[n];
+    el.querySelector(".bar").style.height = (mag/0.78*86).toFixed(1)+"px";
+    el.querySelector(".bar").style.background = col;
+    el.querySelector(".val").style.color = col;
+    el.querySelector(".val").textContent = Math.abs(q[1]) < 1e-6
+      ? (q[0]>=0?"+":"")+fx(q[0],3)
+      : (q[0]>=0?"+":"")+fx(q[0],2)+(q[1]>=0?"+":"")+fx(q[1],2)+"i";
+  });
+
+  set("r_conc", fx(concurrence(st.c),4));
+  set("r_ryd",  fx(st.ryd,4));
+  document.getElementById("sceneClock").textContent = "t = " + fx(clockAt(i,p),2) + " µs";
+
+  function ks(c){
+    return c.map(function(q,n){
+      if (Math.sqrt(q[0]*q[0]+q[1]*q[1]) < 1e-9) return null;
+      var s = Math.abs(q[1]) < 1e-9
+        ? (q[0]>=0?"+":"")+fx(q[0],3)
+        : (q[0]>=0?"+":"")+fx(q[0],3)+(q[1]>=0?"+":"")+fx(q[1],3)+"i";
+      return "("+s+")"+labs[n];
+    }).filter(Boolean).join(" ");
+  }
+  var ci = concurrence(cin), co = concurrence(cout);
+  set("r_kin",  '<span style="color:#6E6382">in&nbsp;&nbsp;</span>'+ks(cin));
+  set("r_kout", '<span style="color:#6E6382">out</span> '+ks(cout));
+  set("r_entnote", co > ci + 1e-9
+    ? "Entanglement went from " + fx(ci,3) + " to <b style=\"color:var(--mint)\">" + fx(co,3)
+      + "</b> — the gate created it. Moving the atoms apart afterwards does not undo this."
+    : "Entanglement stayed at " + fx(co,3) + ". This input is not one the gate can entangle; try |+⟩|+⟩.");
+
+  var TP = T_PULSE_NS(), tot = 2*MACH.T_MOVE_US + MACH.T_DARK_NS/1000;
+  set("bt_t1", fx(TP,1)+" ns"); set("bt_t2", fx(TP,1)+" ns");
+  set("t_dphi", fx(Math.abs(R.dphi*180/Math.PI),3)+"°");
+  set("t_F", fx(R.F,6));
+  set("tb_dark", fx(MACH.T_DARK_NS/1000,3)+" µs");
+  set("tb_darkp", fx(MACH.T_DARK_NS/1000/tot*100,3)+"%");
+  set("tbudNote", "The whole cycle is <b style=\"color:var(--frozen)\">" + fx(tot,1)
+    + " &micro;s</b>, and the entangling pulse inside it lasts <b style=\"color:var(--frozen)\">"
+    + fx(TP,1) + " ns</b> — " + fx(TP*1e-3/tot*100,4)
+    + "% of the wall clock. Essentially all of the time is spent carrying atoms around.");
+}
+
+/* ===================================================================== */
+/*  tabs and wiring                                                      */
+/* ===================================================================== */
+var TABS = ["qubit","gates","drive","cz","skill"];
+function renderTools(){
+  if (!document.getElementById("p-drive").hidden) render1();
+  if (!document.getElementById("p-cz").hidden) render2();
+}
+function showTab(name, push){
+  if (TABS.indexOf(name) < 0) name = "qubit";
+  TABS.forEach(function(t){
+    var sel = (t === name);
+    document.getElementById("t-"+t).setAttribute("aria-selected", String(sel));
+    document.getElementById("p-"+t).hidden = !sel;
+  });
+  var vids = document.querySelectorAll("video");
+  for (var i=0;i<vids.length;i++){
+    var sec = vids[i].closest("section");
+    if (sec && sec.hidden && !vids[i].paused) vids[i].pause();
+  }
+  if (push && history.replaceState) history.replaceState(null, "", "#"+name);
+  requestAnimationFrame(renderTools);
+}
+TABS.forEach(function(t){
+  document.getElementById("t-"+t).addEventListener("click", function(){ showTab(t, true); });
+});
+
+/* --- 03 --- */
+var extra1 = '<h3>Starting state</h3>'
+  + '<div class="prow" id="pre1" style="margin-top:8px">'
+  + Object.keys(S1PRE).map(function(k){ return '<button class="pbtn" data-s="'+k+'">'+k+'</button>'; }).join("")
+  + '</div>'
+  + '<div style="margin-top:12px">'
+  + [["ar","Re α"],["ai","Im α"],["br","Re β"],["bi","Im β"]].map(function(p){
+      return '<div class="ctl"><label for="ctl1q_'+p[0]+'">'+p[1]+'</label>'
+        + '<input type="number" id="ctl1q_'+p[0]+'" data-k="'+p[0]+'" value="'+S1[p[0]]
+        + '" step="0.001" min="-1" max="1"></div>';
+    }).join("")
+  + '</div>'
+  + '<div class="prow" style="margin-top:12px">'
+  + '<button class="pbtn" id="setpi">π pulse</button>'
+  + '<button class="pbtn" id="sethalf">π/2 pulse</button>'
+  + '<button class="pbtn" id="setX">φ = 0° (X)</button>'
+  + '<button class="pbtn" id="setY">φ = 90° (Y)</button></div>';
+
+buildControls(document.getElementById("ctl1q"), C1SPEC, S1, render1, extra1);
+
+document.getElementById("pre1").addEventListener("click", function(e){
+  var t = e.target.closest("[data-s]"); if (!t) return;
+  var v = S1PRE[t.dataset.s];
+  S1.ar=v[0]; S1.ai=v[1]; S1.br=v[2]; S1.bi=v[3];
+  syncControls(document.getElementById("ctl1q"), S1);
+  render1();
+});
+function snapT(frac){
+  var p = physics1(S1); if (!isFinite(p.tpi)) return;
+  S1.t = Math.round(p.tpi*frac*1e5)/1e5;
+  syncControls(document.getElementById("ctl1q"), S1);
+  render1();
+}
+document.getElementById("setpi").addEventListener("click", function(){ snapT(1); });
+document.getElementById("sethalf").addEventListener("click", function(){ snapT(0.5); });
+document.getElementById("setX").addEventListener("click", function(){
+  S1.phi = 0; syncControls(document.getElementById("ctl1q"), S1); render1(); });
+document.getElementById("setY").addEventListener("click", function(){
+  S1.phi = 90; syncControls(document.getElementById("ctl1q"), S1); render1(); });
+
+(function(){
+  var cv = document.getElementById("bloch");
+  var drag=false, px=0, py=0;
+  cv.addEventListener("pointerdown", function(e){
+    drag=true; px=e.clientX; py=e.clientY;
+    try{ cv.setPointerCapture(e.pointerId); }catch(_){}
+  });
+  cv.addEventListener("pointermove", function(e){
+    if (!drag) return;
+    AZ -= (e.clientX-px)*0.0095;
+    EL  = Math.max(-1.45, Math.min(1.45, EL + (e.clientY-py)*0.0095));
+    px=e.clientX; py=e.clientY;
+    if (LAST1) drawBloch({x:LAST1.bv.x, y:LAST1.bv.y, z:LAST1.bv.z,
+                          traj:LAST1.traj, nhat:LAST1.nhat});
+  });
+  function stop(e){ drag=false; try{ cv.releasePointerCapture(e.pointerId); }catch(_){} }
+  cv.addEventListener("pointerup", stop);
+  cv.addEventListener("pointercancel", stop);
+})();
+
+function sendTo(which){
+  if (!LAST1) render1();
+  var f = LAST1.fin;
+  if (which === "A"){ S2.a1r=f.ar; S2.a1i=f.ai; S2.b1r=f.br; S2.b1i=f.bi; }
+  else              { S2.a2r=f.ar; S2.a2i=f.ai; S2.b2r=f.br; S2.b2i=f.bi; }
+  syncControls(document.getElementById("ctlcz"), S2);
+  document.getElementById("sendNote").innerHTML =
+    'Sent to <b style="color:var(--c-axis)">atom ' + which + '</b>. Open tab 04 to see what the gate does with it.';
+  render2();
+}
+document.getElementById("sendA").addEventListener("click", function(){ sendTo("A"); });
+document.getElementById("sendB").addEventListener("click", function(){ sendTo("B"); });
+
+/* --- 04 --- */
+var extra2 = '<h3>Ready-made pairs</h3>'
+  + '<p>|+&rangle;|+&rangle; is the one to try first: the gate turns that product state into a '
+  + 'maximally entangled one, so you can watch entanglement appear.</p>'
+  + '<div class="prow" id="pre2">'
+  + Object.keys(S2PRE).map(function(k){ return '<button class="pbtn" data-s="'+k+'">'+k+'</button>'; }).join("")
+  + '</div>';
+
+buildControls(document.getElementById("ctlcz"), C2SPEC, S2, render2, extra2);
+
+document.getElementById("pre2").addEventListener("click", function(e){
+  var t = e.target.closest("[data-s]"); if (!t) return;
+  var v = S2PRE[t.dataset.s];
+  ["a1r","a1i","b1r","b1i","a2r","a2i","b2r","b2i"].forEach(function(key,n){ S2[key]=v[n]; });
+  syncControls(document.getElementById("ctlcz"), S2);
+  render2();
+});
+
+var scrub = document.getElementById("scrub");
+scrub.max = TOTAL - 1;
+var playing = false, raf = 0, lastT = 0;
+function tick(ts){
+  if (!playing) return;
+  if (ts - lastT > 33){
+    lastT = ts;
+    var f = parseInt(scrub.value,10) + 1;
+    if (f >= TOTAL) f = 0;
+    scrub.value = f;
+    render2();
+  }
+  raf = requestAnimationFrame(tick);
+}
+document.getElementById("play").addEventListener("click", function(e){
+  playing = !playing;
+  e.currentTarget.innerHTML = playing ? "&#9646;&#9646;" : "&#9654;";
+  if (playing){ lastT = 0; raf = requestAnimationFrame(tick); }
+  else cancelAnimationFrame(raf);
+});
+scrub.addEventListener("input", function(){
+  if (playing){
+    playing = false;
+    document.getElementById("play").innerHTML = "&#9654;";
+    cancelAnimationFrame(raf);
+  }
+  render2();
+});
+document.getElementById("stages").addEventListener("click", function(e){
+  var b = e.target.closest("[data-i]"); if (!b) return;
+  var n = parseInt(b.dataset.i,10);
+  scrub.value = Math.floor((BOUNDS[n][0] + BOUNDS[n][1])/2);
+  render2();
+});
+
+/* --- captions --------------------------------------------------------
+   The host will not serve a .vtt file, so both caption tracks are inlined
+   here. Preferred path: hand them to the browser as a Blob so the native
+   CC button and fullscreen captions work. If the browser refuses the blob
+   track, fall back to a caption strip under the video. */
+var VTT = {
+  "vid-qubit": VTT_EN,
+  "vid-bloch": VTT_ZH
+};
+var VTT_META = { "vid-qubit":["en","English"], "vid-bloch":["zh-Hant","繁體中文"] };
+
+function tsec(s){
+  var p = s.trim().split(":");
+  var n = p.map(function(x){ return parseFloat(x); });
+  return n.length === 3 ? n[0]*3600 + n[1]*60 + n[2] : n[0]*60 + n[1];
+}
+function parseVTT(s){
+  var out = [], blocks = s.replace(/\r/g,"").split(/\n\s*\n/);
+  blocks.forEach(function(b){
+    var lines = b.split("\n").filter(function(l){ return l.trim() !== ""; });
+    if (!lines.length) return;
+    var ti = -1;
+    for (var i=0;i<lines.length;i++){ if (lines[i].indexOf("-->") > 0){ ti = i; break; } }
+    if (ti < 0) return;
+    var pr = lines[ti].split("-->");
+    var txt = lines.slice(ti+1).join("\n");
+    if (txt) out.push({a:tsec(pr[0]), b:tsec(pr[1]), t:txt});
+  });
+  return out;
+}
+function captionStrip(video, vttText){
+  var cues = parseVTT(vttText);
+  if (!cues.length || video.parentNode.querySelector(".capwrap")) return;
+  var wrap = document.createElement("div"); wrap.className = "capwrap";
+  var btn  = document.createElement("button");
+  btn.className = "capcc"; btn.type = "button"; btn.textContent = "CC";
+  btn.setAttribute("aria-pressed","true");
+  btn.setAttribute("aria-label","Toggle captions");
+  var txt  = document.createElement("div"); txt.className = "captxt";
+  txt.setAttribute("aria-live","polite");
+  wrap.appendChild(btn); wrap.appendChild(txt);
+  video.parentNode.insertBefore(wrap, video.nextSibling);
+
+  var on = true, last = -1;
+  btn.addEventListener("click", function(){
+    on = !on;
+    btn.setAttribute("aria-pressed", String(on));
+    if (!on){ txt.textContent = ""; last = -1; }
+  });
+  video.addEventListener("timeupdate", function(){
+    if (!on) return;
+    var t = video.currentTime, k = -1;
+    for (var i=0;i<cues.length;i++){
+      if (t >= cues[i].a && t <= cues[i].b){ k = i; break; }
+    }
+    if (k !== last){ last = k; txt.textContent = k < 0 ? "" : cues[k].t; }
+  });
+}
+/* chapter timestamps seek the video they belong to */
+Array.prototype.forEach.call(document.querySelectorAll(".chapters"), function(list){
+  var v = document.getElementById(list.dataset.for);
+  if (!v) return;
+  list.addEventListener("click", function(ev){
+    var b = ev.target.closest("button[data-t]"); if (!b) return;
+    var t = parseFloat(b.dataset.t);
+    if (!isFinite(t)) return;
+    try{ v.currentTime = t; }catch(_){}
+    var p = v.play();
+    if (p && p.catch) p.catch(function(){});
+    v.scrollIntoView({block:"nearest", behavior: REDUCED ? "auto" : "smooth"});
+  });
+});
+
+Object.keys(VTT).forEach(function(id){
+  var v = document.getElementById(id); if (!v) return;
+  var meta = VTT_META[id], loaded = false;
+  try{
+    var url = URL.createObjectURL(new Blob([VTT[id]], {type:"text/vtt"}));
+    var tr = document.createElement("track");
+    tr.kind = "captions"; tr.srclang = meta[0]; tr.label = meta[1];
+    tr.default = true; tr.src = url;
+    tr.addEventListener("load", function(){ loaded = true; });
+    v.appendChild(tr);
+    if (v.textTracks && v.textTracks[0]) v.textTracks[0].mode = "showing";
+  }catch(_){}
+  setTimeout(function(){
+    var tt = v.textTracks && v.textTracks[0];
+    var hasCues = tt && tt.cues && tt.cues.length > 0;
+    if (!loaded && !hasCues) captionStrip(v, VTT[id]);
+  }, 1800);
+});
+
+/* --- page chrome --- */
+var rz = 0;
+window.addEventListener("resize", function(){
+  clearTimeout(rz);
+  rz = setTimeout(renderTools, 90);
+});
+
+showTab((location.hash || "#qubit").slice(1), false);
+render1();
+render2();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(renderTools);
+</script>
+</body>
+</html>

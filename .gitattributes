@@ -1,0 +1,7 @@
+# normalise text, leave media untouched
+* text=auto
+*.mp4  binary
+*.xlsx binary
+*.zip  binary
+*.png  binary
+*.jpg  binary
